@@ -92,7 +92,6 @@
   overflow: hidden;
 }
 
-
 .detail1 {
   position: absolute;
   display: grid;
@@ -105,6 +104,7 @@
 .detail-wrapper {
   display: flex;
 }
+
 .black {
   width: 5px;
   height: 6px;
@@ -205,7 +205,6 @@ border-left: 1px solid rgba(0, 0, 0, 0.15);
   padding: 16px;
   border: 1px solid rgba(0, 0, 0, 0.25);
 
-  /* 2. Profundidade + Luz */
   box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3), 0 1px 0 rgba(255, 255, 255, 0.4);
   & .q-btn {
     border-radius: 100%;
@@ -225,6 +224,7 @@ border-left: 1px solid rgba(0, 0, 0, 0.15);
     1px 3px 0 rgba(255, 255, 255, 0.5),
     inset -1px -1px 6px 3px rgba(0, 0, 0, 0.2);
 }
+
 .login-btn-red {
   background: $snes-red;
   box-shadow: 0.5px 2px 0px darken($snes-red, 15%),
@@ -235,6 +235,7 @@ border-left: 1px solid rgba(0, 0, 0, 0.15);
     1px 3px 0 rgba(255, 255, 255, 0.5),
     inset -1px -1px 6px 3px rgba(0, 0, 0, 0.2);
 }
+
 .login-btn-yellow {
   box-shadow: 0.5px 2px 0px darken($snes-yellow, 15%),
     -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
@@ -245,6 +246,7 @@ border-left: 1px solid rgba(0, 0, 0, 0.15);
     inset -1px -1px 6px 3px rgba(0, 0, 0, 0.2);
   background: $snes-yellow;
 }
+
 .login-btn-green {
   box-shadow: 0.5px 2px 0px darken($snes-green, 15%),
     -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
@@ -257,7 +259,6 @@ border-left: 1px solid rgba(0, 0, 0, 0.15);
 }
 
 .btn-wrapper {
-
   background-color: $snes-light;
   padding: 6px;
   border-radius: 100px;
