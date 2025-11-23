@@ -1,5 +1,5 @@
 <template>
-    <q-layout>
+  <q-layout>
     <q-page-container>
       <router-view />
     </q-page-container>

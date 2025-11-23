@@ -1,1 +1,33 @@
 // app global css in SCSS form
+
+:root {
+  --retro-bg: #12121e;
+  --retro-primary: #cd3e33;
+  --retro-secondary: #3e6ec1;
+  --retro-accent: #f8d928;
+  --retro-text: #ffffff;
+
+  --snes-light: #C9CACE;
+  --snes-dark: #81868A;
+  --snes-blue: #1454B4;
+  --snes-yellow: #D3AD31;
+  --snes-red: #BB192B;
+  --snes-green: #14875A;
+}
+
+body {
+  font-family: 'Press Start 2P', cursive;
+  /* Aplica a fonte ao app todo */
+  background-color: var(--retro-bg);
+  color: var(--retro-text);
+}
+
+@font-face {
+  font-family: customfont;
+  src: url(/src/css/fonts/snes.ttf);
+}
+
+// declare a class which applies it
+.snes-font {
+  font-family: 'customfont';
+}
