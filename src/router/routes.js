@@ -5,14 +5,14 @@ const routes = [
     children: [{ path: "", component: () => import("pages/IndexPage.vue") }],
   },
   {
+    path: "/realindex",
+    component: () => import("layouts/MainLayout.vue"),
+    children: [{ path: "", component: () => import("pages/RealIndexPage.vue") }],
+  },
+  {
     path: "/login",
     component: () => import("layouts/AuthLayout.vue"),
     children: [{ path: "", component: () => import("pages/LoginPage.vue") }],
-  },
-  {
-    path: "/login2",
-    component: () => import("layouts/AuthLayout.vue"),
-    children: [{ path: "", component: () => import("pages/RealLoginPage.vue") }],
   },
 
   // Always leave this as last one,
