@@ -98,13 +98,13 @@ const backgroundStyle = computed(() => ({
 
 }
 .cartucho {
-  display: flex;
-  transform: scale(0.8);
+  margin-top: -100px;
+  transform: scale(0.6);
   transition: .5s all ease;
 }
 
 .cartucho:hover {
-  transform: scale(0.7) translateY(-5px);
+  transform: scale(0.65) translateY(-5px);
 }
 .cartucho-centro {
   display: flex;
@@ -162,7 +162,7 @@ const backgroundStyle = computed(() => ({
 
   background-color: darken($snes-light, 10%);
 
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 14px 14px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.15);
   border-left: 1px solid rgba(0, 0, 0, 0.15);
   box-shadow: inset 3px 3px 7px rgba(0, 0, 0, 0.3),
@@ -182,7 +182,7 @@ const backgroundStyle = computed(() => ({
   width: 100%;
   height: 100%;
 
-  border-radius: 0 0 10px 10px;
+  border-radius: 0 0 8px 8px;
   filter: brightness(0.95);
 }
 

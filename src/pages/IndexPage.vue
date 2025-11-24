@@ -1,110 +1,118 @@
+<script setup>
+// --- IMPORTS ---
+import { ref } from "vue";
+import { useTreinoStore } from "stores/treinoStore";
+import { treinos } from "src/data/treinos.js";
+import { supabase } from "boot/supabase";
+import Cartucho from "src/components/Cartucho.vue"; // O teu componente visual
+
+// --- CONFIGURAÇÃO ---
+const store = useTreinoStore();
+const listaTreinos = treinos;
+
+// --- LÓGICA DE HISTÓRICO ---
+const mostrarHistorico = ref(false);
+const historico = ref([]);
+const loadingHistorico = ref(false);
+
+const abrirHistorico = async () => {
+  mostrarHistorico.value = true;
+  loadingHistorico.value = true;
+
+  const { data, error } = await supabase
+    .from("historico_treinos")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (!error) {
+    historico.value = data;
+  }
+  loadingHistorico.value = false;
+};
+
+// --- LÓGICA DE SELEÇÃO DE TREINO ---
+const selecionarTreino = (id) => {
+  store.carregarTreino(id);
+};
+
+// --- LÓGICA DE CONTROLO (TIMER) ---
+const toggleTimer = () => {
+  if (store.estaRodando) {
+    store.pausarTimer();
+  } else {
+    store.iniciarTimer();
+  }
+};
+
+const cancelarTreino = () => {
+  store.pausarTimer();
+  if (confirm("QUIT GAME? (PROGRESS WILL BE LOST)")) {
+    store.$reset();
+  }
+};
+
+// --- LÓGICA DE UPLOAD ---
+const fotoEvidence = ref(null);
+
+const confirmarVitoria = () => {
+  if (fotoEvidence.value) {
+    store.enviarComprovante(fotoEvidence.value);
+    fotoEvidence.value = null;
+  }
+};
+</script>
+
 <template>
-  <q-page class="flex flex-center column retro-bg">
-
-    <div v-if="!store.treinoAtivo" class="q-pa-md text-center full-width" style="max-width: 600px">
-      <h2 class="retro-title text-retro-accent">SELECT STAGE</h2>
-
-      <q-btn
-        icon="emoji_events"
-        label="HALL OF FAME (HISTÓRICO)"
-        color="purple"
-        class="full-width q-mb-lg retro-btn"
-        @click="abrirHistorico"
-      />
-
-      <div class="q-gutter-y-md">
-        <div
-          v-for="treino in listaTreinos"
-          :key="treino.id"
-          class="stage-card cursor-pointer relative-position"
-          v-ripple
-          @click="selecionarTreino(treino.id)"
-        >
-          <div class="text-h6 text-retro-secondary">{{ treino.titulo }}</div>
-          <div class="text-caption text-grey-4">{{ treino.descricao }}</div>
-          <div class="text-caption text-yellow-8 q-mt-sm">
-            PRESS START >
-          </div>
-        </div>
-      </div>
-
-      <q-dialog v-model="mostrarHistorico" maximized transition-show="slide-up" transition-hide="slide-down">
-        <q-card class="retro-bg text-white">
-          <q-bar class="bg-primary text-white">
-            <div class="text-h6 retro-font" style="font-size: 12px">RECORDS</div>
-            <q-space />
-            <q-btn dense flat icon="close" v-close-popup />
-          </q-bar>
-
-          <q-card-section>
-            <div v-if="loadingHistorico" class="text-center q-mt-xl blink">LOADING...</div>
-
-            <div v-else-if="historico.length === 0" class="text-center q-mt-xl">
-              NO RECORDS FOUND.<br>START RUNNING!
-            </div>
-
-            <q-list v-else dark separator>
-              <q-item v-for="item in historico" :key="item.id" class="q-py-md">
-
-                <q-item-section avatar>
-                  <q-avatar v-if="item.foto_url" rounded size="50px">
-                    <img :src="item.foto_url" style="object-fit: cover; border: 2px solid white">
-                  </q-avatar>
-                  <q-icon v-else name="star" color="yellow" size="md" />
-                </q-item-section>
-
-                <q-item-section>
-                  <q-item-label class="retro-font text-yellow" style="font-size: 10px">STAGE CLEAR</q-item-label>
-                  <q-item-label caption class="text-white">
-                    {{ new Date(item.created_at).toLocaleDateString() }}
-                    <span class="text-grey-5"> | {{ new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }}</span>
-                  </q-item-label>
-
-                  <a v-if="item.foto_url" :href="item.foto_url" target="_blank" class="text-retro-secondary text-caption q-mt-xs" style="text-decoration: none; border-bottom: 1px dashed white;">
-                    [VIEW EVIDENCE]
-                  </a>
-                </q-item-section>
-
-                <q-item-section side>
-                  <div class="text-retro-accent text-bold">{{ item.pontuacao }} PTS</div>
-                </q-item-section>
-              </q-item>
-            </q-list>
-          </q-card-section>
-        </q-card>
-      </q-dialog>
+  <q-page class="page-container q-pa-md">
+    <div class="star-background">
+      <div id="stars"></div>
+      <div id="stars2"></div>
+      <div id="stars3"></div>
     </div>
 
-    <div v-else class="full-width column items-center justify-between window-height q-pa-md">
+    <div v-if="!store.treinoAtivo" class="content-wrapper">
+      <div
+        class="select q-pa-lg street-font flex items-center text-h4 q-mb-lg snes-blink"
+      >
+        SELECT STAGE
+      </div>
 
-      <div class="full-width q-mt-md">
-        <div class="row justify-between text-retro-accent q-mb-xs">
-          <span class="blink" v-if="store.estaRodando">TIME</span>
-          <span v-else>PAUSED</span>
-          <span>P1</span>
-        </div>
+      <div class="cartuchos-grid q-mt-lg">
+        <Cartucho
+          v-for="treino in listaTreinos"
+          :key="treino.id"
+          :treino="treino"
+          @click="selecionarTreino(treino.id)"
+        />
+      </div>
+    </div>
+
+    <div v-else class="content-wrapper">
+      <div class="full-width q-mt-md" style="max-width: 600px">
         <q-linear-progress
+          reverse
           size="25px"
           :value="store.progressoGeral"
-          color="yellow-8"
-          track-color="red-9"
           class="retro-bar"
         >
-          <div class="absolute-full flex flex-center">
-            <span class="text-black text-bold retro-font" style="font-size: 10px">ENERGY</span>
-          </div>
         </q-linear-progress>
+        <div v-if="store.passoAtual.tipo === 'corrida'" class="street-font flex items-center text-h6 snes-blink">RUN!</div>
+        <div v-if="store.passoAtual.tipo === 'aquecimento'" class="street-font flex items-center text-h6 snes-blink">WARM UP!</div>
+        <div v-if="store.passoAtual.tipo === 'arrefecimento'" class="street-font flex items-center text-h6 snes-blink">CHILL!</div>
+        <div v-if="store.passoAtual.tipo === 'caminhada'" class="street-font flex items-center text-h6 snes-blink">REST!</div>
       </div>
 
       <div class="full-width flex flex-center column col-grow">
-
-        <div v-if="store.treinoConcluido" class="text-center full-width q-px-md animate-pop">
-          <h2 class="text-warning blink-slow q-mb-md retro-font" style="font-size: 1.5rem">MISSION COMPLETE!</h2>
-
-          <div class="text-white q-mb-lg retro-font" style="font-size: 0.7rem; line-height: 1.5">
-            UPLOAD EVIDENCE TO<br>SAVE YOUR SCORE
-          </div>
-
+        <div
+          v-if="store.treinoConcluido"
+          class="text-center full-width q-px-md"
+        >
+          <h2
+            class="text-warning snes-blink q-mb-md street-font text-h4"
+          >
+            MISSION COMPLETE!
+          </h2>
+          <div class="login-card q-pa-sm">
           <q-file
             v-model="fotoEvidence"
             dark
@@ -115,10 +123,13 @@
             class="retro-input full-width q-mb-md"
             color="yellow"
           >
-            <template v-slot:prepend>
-              <q-icon name="camera_alt" />
-            </template>
+            <template v-slot:prepend><q-icon name="camera_alt" /></template>
           </q-file>
+          </div>
+          <div class="text-white q-mb-lg s-font" style="font-size: 0.7rem">
+            UPLOAD EVIDENCE TO SAVE
+          </div>
+
 
           <q-btn
             label="CONFIRM UPLOAD"
@@ -131,199 +142,385 @@
           />
         </div>
 
-        <div v-else class="timer-box text-center">
-          <q-icon
-            :name="store.passoAtual.tipo === 'corrida' ? 'directions_run' : 'directions_walk'"
-            size="5rem"
-            :color="store.corAtual"
-            class="q-mb-md"
-            :class="store.estaRodando ? 'bounce' : ''"
-          />
+        <div v-else class="text-center">
+          <q-img
+            v-if="store.passoAtual.tipo === 'aquecimento'"
+            src="src/assets/warmup.gif"
+            width="60px"
+          >
+          </q-img>
+          <q-img
+            v-if="store.passoAtual.tipo === 'arrefecimento'"
+            src="src/assets/cooldown.gif"
+            width="60px"
+          >
+          </q-img>
+          <q-img
+            v-if="store.passoAtual.tipo === 'corrida'"
+            src="src/assets/run.gif"
+            width="140px"
+          >
+          </q-img>
+          <q-img
+            v-if="store.passoAtual.tipo === 'caminhada'"
+            src="src/assets/eskeleto.gif"
+            width="60px"
+          >
+          </q-img>
 
-          <div class="text-h1 retro-font text-white" style="font-size: 4rem">
+          <div
+            class="text-h1 street-font text-white"
+            style="font-size: 4rem; text-shadow: 4px 4px 0 #000"
+          >
             {{ store.tempoFormatado }}
           </div>
 
-          <div :class="`text-h4 q-mt-md text-${store.corAtual} blink-slow retro-font`">
-            {{ store.passoAtual.texto }}
+
+        </div>
+      </div>
+
+      <div v-if="!store.treinoConcluido" class="full-width q-mb-md text-center">
+        <div class="login-card q-pa-sm q-mt-md">
+          <div class="login-action-card">
+            <div class="btn-holder">
+              <div class="btn-wrapper down">
+                <q-btn
+                  flat
+                  class="login-btn-green"
+                  :icon="store.estaRodando ? 'pause' : 'play_arrow'"
+                  @click="toggleTimer"
+                ></q-btn>
+                <q-btn flat class="login-btn-blue"></q-btn>
+              </div>
+              <div class="btn-wrapper up">
+                <q-btn flat class="login-btn-yellow"></q-btn>
+                <q-btn
+                  flat
+                  class="login-btn-red"
+                  icon="stop"
+                  @click="cancelarTreino"
+                ></q-btn>
+              </div>
+            </div>
           </div>
         </div>
-
       </div>
-
-      <div v-if="!store.treinoConcluido" class="full-width q-mb-xl text-center">
-        <div class="row justify-center q-gutter-lg">
-          <q-btn
-            round
-            size="xl"
-            :icon="store.estaRodando ? 'pause' : 'play_arrow'"
-            :color="store.estaRodando ? 'orange' : 'green'"
-            @click="toggleTimer"
-            class="retro-control-btn"
-          />
-
-          <q-btn
-            round
-            size="lg"
-            icon="stop"
-            color="red"
-            @click="cancelarTreino"
-            class="retro-control-btn"
-          />
-        </div>
-      </div>
-
     </div>
   </q-page>
 </template>
 
-<script setup>
-import { ref } from 'vue'
-import { useTreinoStore } from 'stores/treinoStore'
-import { treinos } from 'src/data/treinos.js'
-import { supabase } from 'boot/supabase'
+<style lang="scss">
+// ==========================================
+// 1. ESTILOS GERAIS E FONTES
+// ==========================================
 
-const store = useTreinoStore()
-const listaTreinos = treinos
-
-// --- Lógica do Histórico ---
-const mostrarHistorico = ref(false)
-const historico = ref([])
-const loadingHistorico = ref(false)
-
-const abrirHistorico = async () => {
-  mostrarHistorico.value = true
-  loadingHistorico.value = true
-
-  const { data, error } = await supabase
-    .from('historico_treinos')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (!error) {
-    historico.value = data
-  }
-  loadingHistorico.value = false
+.login-card {
+  display: grid;
+  position: relative;
+  bottom: 0;
+  background-color: $snes-light;
+  min-width: 300px;
+  border-radius: 14px;
+  gap: 16px;
+   border: 1px solid rgba(0, 0, 0, 0.25);
+  box-shadow: 0 -3px 4px rgba(0, 0, 0, 0.5),
+    inset 1px -2px 1px rgba(255, 255, 255, 0.5),
+    0 12px 0px darken($snes-dark, 25%);
 }
 
-// --- Lógica do Menu ---
-const selecionarTreino = (id) => {
-  store.carregarTreino(id)
+.login-card::after,
+.login-card::before {
+  content: "";
+  position: absolute;
+  height: 60px;
+  width: 50px;
+  background-color: $snes-darker;
+  border-radius: 10px;
+  z-index: -1;
+  top: -7px;
 }
 
-// --- Lógica dos Controles ---
-const toggleTimer = () => {
-  if (store.estaRodando) {
-    store.pausarTimer()
-  } else {
-    store.iniciarTimer()
-  }
+.login-card::before {
+  left: 12px;
 }
 
-const cancelarTreino = () => {
-  store.pausarTimer()
-  if (confirm('QUIT GAME? (PROGRESS WILL BE LOST)')) {
-    store.$reset()
-  }
+.login-card::after {
+  right: 12px;
 }
 
-// --- Lógica do Upload da Foto ---
-const fotoEvidence = ref(null)
+.login-action-card {
+  background-color: $snes-dark;
+  border-radius: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 32px;
+  padding: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
 
-const confirmarVitoria = () => {
-  if (fotoEvidence.value) {
-    // Chama a store para subir a foto e salvar
-    store.enviarComprovante(fotoEvidence.value)
-    // Limpa o input local
-    fotoEvidence.value = null
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3), 0 1px 0 rgba(255, 255, 255, 0.4);
+  & .q-btn {
+    border-radius: 100%;
+    height: 40px;
+    width: 40px;
+    transform: rotate(38deg);
   }
 }
-</script>
 
-<style scoped>
-/* --- ESTILOS GERAIS --- */
-.retro-bg {
-  background-color: var(--retro-bg);
-}
-
-.retro-font {
-  font-family: 'Press Start 2P', cursive;
-}
-
-/* --- MENU --- */
-.retro-title {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 1.8rem;
-  text-shadow: 4px 4px #000;
-  line-height: 1.5;
+.login-btn-blue {
+  background: $snes-blue;
+  box-shadow: 0.5px 2px 0px darken($snes-blue, 15%),
+    -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
+    inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
+    inset 2px 3px 4px rgba(255, 255, 255, 0.2),
+    inset -1px -1px 2px 1px rgba(255, 255, 255, 0.2),
+    1px 3px 0 rgba(255, 255, 255, 0.5),
+    inset -1px -1px 6px 3px rgba(0, 0, 0, 0.2);
 }
 
-.stage-card {
-  border: 4px solid var(--retro-secondary);
-  padding: 20px;
-  background: rgba(0,0,0,0.3);
-  transition: transform 0.1s;
-}
-.stage-card:active {
-  transform: scale(0.98);
-  background: var(--retro-secondary);
-}
-.stage-card:active .text-h6 {
-  color: white !important;
+.login-btn-red {
+  background: $snes-red;
+  box-shadow: 0.5px 2px 0px darken($snes-red, 15%),
+    -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
+    inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
+    inset 2px 3px 4px rgba(255, 255, 255, 0.2),
+    inset -1px -1px 2px 1px rgba(255, 255, 255, 0.2),
+    1px 3px 0 rgba(255, 255, 255, 0.5),
+    inset -1px -1px 6px 3px rgba(0, 0, 0, 0.2);
 }
 
-/* --- HUD --- */
+.login-btn-yellow {
+  box-shadow: 0.5px 2px 0px darken($snes-yellow, 15%),
+    -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
+    inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
+    inset 2px 3px 4px rgba(255, 255, 255, 0.2),
+    inset -1px -1px 2px 1px rgba(255, 255, 255, 0.2),
+    1px 3px 0 rgba(255, 255, 255, 0.5),
+    inset -1px -1px 6px 3px rgba(0, 0, 0, 0.2);
+  background: $snes-yellow;
+}
+
+.login-btn-green {
+  box-shadow: 0.5px 2px 0px darken($snes-green, 15%),
+    -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
+    inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
+    inset 2px 3px 4px rgba(255, 255, 255, 0.2),
+    inset -1px -1px 2px 1px rgba(255, 255, 255, 0.2),
+    1px 3px 0 rgba(255, 255, 255, 0.5),
+    inset -1px -1px 6px 3px rgba(0, 0, 0, 0.2);
+  background: $snes-green;
+}
+
+.btn-wrapper {
+  background-color: $snes-light;
+  padding: 6px;
+  border-radius: 100px;
+  display: flex;
+  gap: 25px;
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3), 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.btn-holder {
+  transform: rotate(-38deg);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.down {
+  transform: translateX(-9px);
+}
+
+.up {
+  transform: translateX(9px);
+}
+
 .retro-bar {
   border: 2px solid white;
-  border-radius: 0;
+  border-radius: 2px;
+  background-color: $street-yellow !important;
+  opacity: 1 !important;
+  color: $street-red !important;
 }
 
-.retro-control-btn {
-  border: 4px solid rgba(255,255,255,0.8);
-  box-shadow: 0 0 15px rgba(255,255,255,0.2);
+.q-linear-progress__track--light {
+  background-color: $street-yellow !important;
+  background: none !important;
+  opacity: 0 !important;
 }
 
-/* --- INPUTS E BOTÕES --- */
-:deep(.retro-input .q-field__control) {
-  border-radius: 0 !important;
-  border-width: 2px;
+// ==========================================
+// 2. FUNDO DE ESTRELAS (SCSS)
+// ==========================================
+@function multiple-box-shadow($n) {
+  $value: "#{random(2000)}px #{random(2000)}px #FFF";
+  @for $i from 2 through $n {
+    $value: "#{$value} , #{random(2000)}px #{random(2000)}px #FFF";
+  }
+  @return unquote($value);
 }
 
-.retro-btn {
-  font-family: 'Press Start 2P', cursive;
-  border-radius: 0;
-  border: 2px solid white;
-  font-size: 0.8rem;
+$shadows-small: multiple-box-shadow(700);
+$shadows-medium: multiple-box-shadow(200);
+$shadows-big: multiple-box-shadow(100);
+
+.star-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+  z-index: 0;
+  overflow: hidden;
 }
 
-/* --- ANIMAÇÕES --- */
-.blink {
-  animation: blinker 1s linear infinite;
+#stars {
+  width: 1px;
+  height: 1px;
+  background: transparent;
+  box-shadow: $shadows-small;
+  animation: animStar 50s linear infinite;
+  &:after {
+    content: " ";
+    position: absolute;
+    top: 2000px;
+    width: 1px;
+    height: 1px;
+    background: transparent;
+    box-shadow: $shadows-small;
+  }
 }
 
-.blink-slow {
-  animation: blinker 2s linear infinite;
+#stars2 {
+  width: 2px;
+  height: 2px;
+  background: transparent;
+  box-shadow: $shadows-medium;
+  animation: animStar 100s linear infinite;
+  &:after {
+    content: " ";
+    position: absolute;
+    top: 2000px;
+    width: 2px;
+    height: 2px;
+    background: transparent;
+    box-shadow: $shadows-medium;
+  }
 }
 
-@keyframes blinker {
-  50% { opacity: 0; }
+#stars3 {
+  width: 3px;
+  height: 3px;
+  background: transparent;
+  box-shadow: $shadows-big;
+  animation: animStar 150s linear infinite;
+  &:after {
+    content: " ";
+    position: absolute;
+    top: 2000px;
+    width: 3px;
+    height: 3px;
+    background: transparent;
+    box-shadow: $shadows-big;
+  }
+}
+
+@keyframes animStar {
+  from {
+    transform: translateY(0px);
+  }
+  to {
+    transform: translateY(-2000px);
+  }
+}
+
+// ==========================================
+// 3. LAYOUT
+// ==========================================
+.page-container {
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.content-wrapper {
+  position: relative;
+  z-index: 1; /* Fica acima das estrelas */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cartuchos-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 35px;
+  width: 100%;
+}
+
+.cartucho-wrapper {
+  transition: transform 0.1s;
+}
+.cartucho-wrapper:active {
+  transform: scale(0.95);
+  filter: brightness(0.8);
+}
+
+.select {
+  text-shadow: 2px 2px 0px #000;
+  padding: 6px;
+}
+
+// ==========================================
+// 4. ANIMAÇÕES
+// ==========================================
+.snes-blink {
+  animation: retro-blink 2s infinite;
+}
+
+@keyframes retro-blink {
+  0%,
+  4% {
+    opacity: 1;
+  }
+  5%,
+  9% {
+    opacity: 0;
+  }
+  10%,
+  14% {
+    opacity: 1;
+  }
+  15%,
+  19% {
+    opacity: 0;
+  }
+  20%,
+  24% {
+    opacity: 1;
+  }
+  25%,
+  29% {
+    opacity: 0;
+  }
+  30%,
+  100% {
+    opacity: 1;
+  }
 }
 
 .bounce {
   animation: bounce 0.5s infinite alternate;
 }
-
 @keyframes bounce {
-  from { transform: translateY(0); }
-  to { transform: translateY(-10px); }
-}
-
-.animate-pop {
-  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-@keyframes popIn {
-  from { transform: scale(0); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-10px);
+  }
 }
 </style>

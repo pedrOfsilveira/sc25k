@@ -16,18 +16,27 @@
 }
 
 body {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'snes', sans-serif;
   /* Aplica a fonte ao app todo */
   background-color: var(--retro-bg);
   color: var(--retro-text);
 }
 
 @font-face {
-  font-family: customfont;
+  font-family: snes;
   src: url(/src/css/fonts/snes.ttf);
 }
 
-// declare a class which applies it
 .snes-font {
-  font-family: 'customfont';
+  font-family: 'snes';
 }
+
+@font-face {
+  font-family: street;
+  src: url(/src/css/fonts/street.ttf);
+}
+
+.street-font {
+  font-family: 'street';
+}
+
