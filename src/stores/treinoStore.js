@@ -1,5 +1,3 @@
-// src/stores/treinoStore.js
-
 import { defineStore } from "pinia";
 import { treinos } from "src/data/treinos.js";
 import { supabase } from "boot/supabase";
@@ -13,8 +11,10 @@ export const useTreinoStore = defineStore("treino", {
     timer: 0,
     estaRodando: false,
     treinoConcluido: false,
-    intervalId: null,
     salvando: false,
+    intervalId: null,
+    endTime: null,
+    wakeLock: null
   }),
 
   getters: {
@@ -47,9 +47,6 @@ export const useTreinoStore = defineStore("treino", {
   },
 
   actions: {
-    // --- FUNÇÕES DE PERSISTÊNCIA (SAVE GAME) ---
-
-    // Salva o estado atual no LocalStorage do navegador
     salvarEstadoLocal() {
       const estado = {
         treinoId: this.treinoAtivo?.id,
@@ -58,35 +55,34 @@ export const useTreinoStore = defineStore("treino", {
       localStorage.setItem('retroRun_save', JSON.stringify(estado));
     },
 
-    // Limpa o save quando tudo termina bem
     limparEstadoLocal() {
       localStorage.removeItem('retroRun_save');
     },
 
-    // Tenta recuperar se houve um crash
     verificarCrash() {
       const save = localStorage.getItem('retroRun_save');
       if (save) {
-        const dados = JSON.parse(save);
-        // Se tinha um treino concluído pendente de foto
-        if (dados.treinoId && dados.treinoConcluido) {
-          this.carregarTreino(dados.treinoId);
-          this.treinoConcluido = true;
-          this.timer = 0;
-          this.passoAtualIndex = this.treinoAtivo.estrutura.length - 1;
+        try {
+          const dados = JSON.parse(save);
+          if (dados.treinoId && dados.treinoConcluido) {
+            this.carregarTreino(dados.treinoId);
+            this.treinoConcluido = true;
+            this.timer = 0;
+            this.passoAtualIndex = this.treinoAtivo.estrutura.length - 1;
 
-          Notify.create({
-            message: 'GAME RESTORED! UPLOAD YOUR PHOTO.',
-            color: 'warning',
-            icon: 'restore',
-            position: 'top',
-            classes: 'retro-font'
-          });
+            Notify.create({
+              message: 'GAME RESTORED! UPLOAD YOUR PHOTO.',
+              color: 'warning',
+              icon: 'restore',
+              position: 'top',
+              classes: 'retro-font'
+            });
+          }
+        } catch (e) {
+          this.limparEstadoLocal();
         }
       }
     },
-
-    // --- CONTROLO DO TREINO ---
 
     carregarTreino(id) {
       const treinoSelecionado = treinos.find((t) => t.id === id);
@@ -96,72 +92,147 @@ export const useTreinoStore = defineStore("treino", {
         this.treinoConcluido = false;
         this.timer = treinoSelecionado.estrutura[0].tempo;
         this.estaRodando = false;
+        this.endTime = null;
       }
     },
 
-    iniciarTimer() {
+    async iniciarTimer() {
       if (this.estaRodando) return;
+
       this.estaRodando = true;
+
+      try {
+        if ('wakeLock' in navigator) {
+          this.wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {
+        console.log("WakeLock indisponível");
+      }
+
+      const agora = Date.now();
+      this.endTime = agora + (this.timer * 1000);
+
       this.intervalId = setInterval(() => {
         this.tick();
-      }, 1000);
+      }, 200);
     },
 
-    pausarTimer() {
+    async pausarTimer() {
       this.estaRodando = false;
       if (this.intervalId) clearInterval(this.intervalId);
+
+      if (this.wakeLock) {
+        try {
+          await this.wakeLock.release();
+          this.wakeLock = null;
+        } catch (e) { }
+      }
     },
 
     tick() {
-      if (this.timer > 0) {
-        this.timer--;
+      const agora = Date.now();
+      const segundosRestantes = Math.ceil((this.endTime - agora) / 1000);
+
+      if (segundosRestantes >= 0) {
+        this.timer = segundosRestantes;
       } else {
         this.proximoPasso();
       }
     },
 
     proximoPasso() {
+      clearInterval(this.intervalId);
+
       if (this.passoAtualIndex < this.treinoAtivo.estrutura.length - 1) {
         this.tocarSomAlert();
         this.passoAtualIndex++;
+
         this.timer = this.passoAtual.tempo;
+
+        const agora = Date.now();
+        this.endTime = agora + (this.timer * 1000);
+
+        this.intervalId = setInterval(() => {
+          this.tick();
+        }, 200);
+
       } else {
         this.finalizarTreino();
       }
+    },
+
+    async cancelarTreino() {
+      this.pausarTimer();
+      await this.registrarHistorico('CANCELADO');
+      this.limparEstadoLocal();
+      this.$reset();
     },
 
     finalizarTreino() {
       this.pausarTimer();
       this.treinoConcluido = true;
       this.tocarSomVitoria();
-
-      // AQUI: Salvamos o jogo caso o navegador crashe na hora da foto
       this.salvarEstadoLocal();
     },
 
-    // --- UPLOAD COM PROTEÇÃO DE MEMÓRIA ---
+    async registrarHistorico(status, fotoUrl = null) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const totalPassos = this.treinoAtivo.estrutura.length;
+        const passosFeitos = this.passoAtualIndex + 1;
+        const stringProgresso = `${passosFeitos}/${totalPassos}`;
+
+        let pontos = 0;
+        if (status === 'CONCLUÍDO') {
+          pontos = 1000 + Math.floor(Math.random() * 500);
+        } else {
+          pontos = Math.floor((passosFeitos / totalPassos) * 500);
+        }
+
+        const { error } = await supabase.from("historico_treinos").insert({
+          user_id: user.id,
+          treino_id: this.treinoAtivo.id,
+          pontuacao: pontos,
+          foto_url: fotoUrl,
+          status: status,
+          progresso: stringProgresso
+        });
+
+        if (error) throw error;
+
+        if (status === 'CANCELADO') {
+           Notify.create({
+            message: `GAME OVER. SAVED ${pontos} PTS.`,
+            color: "warning",
+            position: "top",
+            classes: "retro-font"
+          });
+        }
+
+      } catch (err) {
+        console.error(err);
+        Notify.create({ message: "Save Failed", color: "negative" });
+      }
+    },
 
     async enviarComprovante(arquivoFoto) {
       this.salvando = true;
-      const pontos = 1000 + Math.floor(Math.random() * 500);
 
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("Sessão perdida. Faça login novamente.");
+        if (!user) throw new Error("Sessão perdida.");
 
-        // CONFIGURAÇÃO LEVE PARA NÃO CRASHAR
         const options = {
-          maxSizeMB: 0.5,         // 500KB máx
-          maxWidthOrHeight: 800,  // Reduz resolução (20MP -> ~0.5MP)
-          useWebWorker: false,    // Desliga workers para economizar RAM
+          maxSizeMB: 0.5,
+          maxWidthOrHeight: 800,
+          useWebWorker: false,
           fileType: 'image/jpeg',
           initialQuality: 0.6
         };
 
-        console.log("Comprimindo...");
         const compressedFile = await imageCompression(arquivoFoto, options);
-        console.log("Comprimido com sucesso!");
-
         const nomeArquivo = `${user.id}/${Date.now()}.jpg`;
 
         const { error: uploadError } = await supabase.storage
@@ -178,19 +249,10 @@ export const useTreinoStore = defineStore("treino", {
           .from("comprovantes")
           .getPublicUrl(nomeArquivo);
 
-        const { error: dbError } = await supabase
-          .from("historico_treinos")
-          .insert({
-            user_id: user.id,
-            treino_id: this.treinoAtivo.id,
-            pontuacao: pontos,
-            foto_url: publicUrl,
-          });
-
-        if (dbError) throw dbError;
+        await this.registrarHistorico('CONCLUÍDO', publicUrl);
 
         Notify.create({
-          message: `MISSION COMPLETE! +${pontos} PTS`,
+          message: `MISSION COMPLETE!`,
           color: "positive",
           icon: "emoji_events",
           position: "top",
@@ -198,7 +260,6 @@ export const useTreinoStore = defineStore("treino", {
           timeout: 4000,
         });
 
-        // TUDO CERTO? Limpa o save de segurança
         this.limparEstadoLocal();
         this.$reset();
 
@@ -214,8 +275,50 @@ export const useTreinoStore = defineStore("treino", {
       }
     },
 
-    // --- SONS ---
-    tocarSomAlert() { /* ... igual ... */ },
-    tocarSomVitoria() { /* ... igual ... */ },
+    tocarSomAlert() {
+      try {
+        const context = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+
+        oscillator.type = "square";
+        oscillator.frequency.setValueAtTime(440, context.currentTime);
+        gain.gain.setValueAtTime(0.1, context.currentTime);
+
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+
+        oscillator.start();
+        oscillator.stop(context.currentTime + 0.15);
+      } catch (e) {
+        console.error("Audio Error", e);
+      }
+    },
+
+    tocarSomVitoria() {
+      try {
+        const context = new (window.AudioContext || window.webkitAudioContext)();
+        const now = context.currentTime;
+        const notas = [523.25, 659.25, 783.99, 1046.5];
+
+        notas.forEach((freq, i) => {
+          const osc = context.createOscillator();
+          const gain = context.createGain();
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(freq, now + i * 0.15);
+
+          gain.gain.setValueAtTime(0.1, now + i * 0.15);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 0.4);
+
+          osc.connect(gain);
+          gain.connect(context.destination);
+
+          osc.start(now + i * 0.15);
+          osc.stop(now + i * 0.15 + 0.5);
+        });
+      } catch (e) {
+        console.error("Audio Error", e);
+      }
+    },
   },
 });

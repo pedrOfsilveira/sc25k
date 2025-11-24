@@ -43,8 +43,6 @@ const backgroundStyle = computed(() => ({
 
 <style lang="scss" scoped>
 
-
-
 .parafuso::before {
   background-color: darken($snes-dark, 20%);
   height: 15px;
@@ -99,7 +97,7 @@ const backgroundStyle = computed(() => ({
 }
 .cartucho {
   margin-top: -100px;
-  transform: scale(0.6);
+  transform: scale(0.7);
   transition: .5s all ease;
 }
 
