@@ -1,12 +1,13 @@
 <script setup>
 import { ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { supabase } from "boot/supabase";
 import { useTreinoStore } from "stores/treinoStore";
 import { treinos } from "src/data/treinos.js";
 
 const store = useTreinoStore();
 const router = useRouter();
+const route = useRoute();
 
 const tab = ref("home");
 const mostrarHistorico = ref(false);
@@ -14,7 +15,13 @@ const historico = ref([]);
 const loadingHistorico = ref(false);
 
 const resetTab = () => {
-  tab.value = 'home';
+  const path = route.path;
+
+  if (path === '/shop') {
+    tab.value = 'shop';
+  } else {
+    tab.value = 'home';
+  }
 };
 
 const getNomeTreino = (id) => {
@@ -25,6 +32,11 @@ const getNomeTreino = (id) => {
 const irParaHome = () => {
   tab.value = 'home';
   router.push('/');
+};
+
+const irParaShop = () => {
+  tab.value = 'shop';
+  router.push('/shop');
 };
 
 const logout = async () => {
@@ -74,13 +86,26 @@ const abrirHistorico = async () => {
               <div class="cable-tail"></div>
             </div>
           </div>
+          <div
+            class="controller-port"
+            :class="{ 'plugged-in': tab === 'shop' }"
+            @click="irParaShop"
+          >
+            <span class="label">SHOP</span>
+            <div class="port-hole">
+              <div class="pin-holes"></div>
+            </div>
+            <div class="plug-connector">
+              <div class="cable-tail"></div>
+            </div>
+          </div>
 
           <div
             class="controller-port"
             :class="{ 'plugged-in': tab === 'history' }"
             @click="abrirHistorico"
           >
-            <span class="label">MEMORY CARD</span>
+            <span class="label">MEMORY</span>
             <div class="port-hole">
               <div class="pin-holes"></div>
             </div>

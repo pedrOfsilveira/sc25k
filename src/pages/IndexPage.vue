@@ -252,7 +252,6 @@ $shadows-big: multiple-box-shadow(100);
 }
 
 .retro-btn {
-  font-family: 'Press Start 2P', cursive;
   border-radius: 0;
   border: 2px solid white;
 }
