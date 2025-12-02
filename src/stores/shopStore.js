@@ -22,7 +22,7 @@ export const useShopStore = defineStore('shop', {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
-        // 1. Calcular Saldo Total (XP dos Treinos)
+        // 1. Calcular Saldo Total (XP de todo o histórico)
         const { data: historico, error: erroHist } = await supabase
           .from('historico_treinos')
           .select('pontuacao')
@@ -72,7 +72,7 @@ export const useShopStore = defineStore('shop', {
 
         const { error } = await supabase.from('loja_ofertas').insert({
           criador_id: user.id,
-          criador_email: user.email, // Importante para aparecer no card de quem recebe
+          criador_email: user.email,
           destinatario_email: emailDestino.trim(),
           titulo: titulo,
           preco: preco
@@ -97,6 +97,7 @@ export const useShopStore = defineStore('shop', {
     },
 
     async comprarItem(item) {
+      // Validação de Saldo
       if (this.saldoDisponivel < item.preco) {
         Notify.create({
           message: 'NOT ENOUGH EXP POINTS!',
@@ -104,10 +105,11 @@ export const useShopStore = defineStore('shop', {
           icon: 'warning',
           classes: 'snes-font'
         })
-        return
+        return false
       }
 
-      if(!confirm(`EXCHANGE ${item.preco} XP FOR "${item.titulo}"?`)) return
+      // Confirmação
+      if(!confirm(`EXCHANGE ${item.preco} XP FOR "${item.titulo}"?`)) return false
 
       try {
         const { error } = await supabase
@@ -118,17 +120,21 @@ export const useShopStore = defineStore('shop', {
         if (error) throw error
 
         Notify.create({
-          message: 'ITEM ACQUIRED!',
+          message: 'ITEM ACQUIRED! GENERATING TICKET...',
           color: 'positive',
-          icon: 'shopping_cart',
+          icon: 'print',
           classes: 'snes-font'
         })
 
+        // Atualização Local
         item.comprado = true
         this.totalGasto += item.preco
 
+        return true // Retorna true para gerar o ticket visual
+
       } catch (error) {
         Notify.create({ message: 'Transaction failed', color: 'negative' })
+        return false
       }
     }
   }

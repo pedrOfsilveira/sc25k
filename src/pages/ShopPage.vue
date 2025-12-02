@@ -11,7 +11,6 @@
         <h2 class="text-h4 street-font text-yellow snes-blink" style="text-shadow: 4px 4px 0 #000; margin-bottom: 10px;">
           ITEM SHOP
         </h2>
-
         <div class="xp-wallet q-pa-md q-mb-lg">
           <div class="row justify-between items-center">
             <span class="snes-font text-grey-5" style="font-size: 10px;">TOTAL EARNED:</span>
@@ -51,7 +50,7 @@
           <div v-else-if="shopStore.ofertasParaMim.length === 0" class="empty-shop q-pa-lg">
             <q-icon name="remove_shopping_cart" color="grey-8" size="xl" />
             <div class="text-grey snes-font q-mt-md" style="font-size: 10px">
-              NO OFFERS RECEIVED.<br>ASK SOMEONE TO CREATE ONE FOR YOU.
+              NO OFFERS RECEIVED.
             </div>
           </div>
 
@@ -65,7 +64,6 @@
               <div class="row items-center justify-between">
                 <div class="col q-pa-md">
                   <div class="text-yellow snes-font text-subtitle2">{{ offer.titulo }}</div>
-
                   <div class="text-grey-5 snes-font" style="font-size: 8px; margin-top: 4px;">
                     FROM: {{ offer.criador_email || 'Unknown User' }}
                   </div>
@@ -84,7 +82,8 @@
                     color="positive"
                     label="BUY"
                     class="retro-btn snes-font full-width"
-                    @click="shopStore.comprarItem(offer)"
+                    :loading="generatingTicket && currentOfferId === offer.id"
+                    @click="handleBuy(offer)"
                   />
                 </div>
               </div>
@@ -97,80 +96,28 @@
             <div class="text-white snes-font q-mb-md text-center" style="font-size: 12px;">
               CREATE NEW OFFER
             </div>
-
-            <q-input
-              v-model="novoTitulo"
-              dark
-              outlined
-              dense
-              label="ITEM NAME"
-              class="retro-input q-mb-md snes-font"
-              color="yellow"
-            />
-
-            <q-input
-              v-model="novoEmail"
-              dark
-              outlined
-              dense
-              label="FOR (EMAIL)"
-              class="retro-input q-mb-md snes-font"
-              color="yellow"
-            />
-
-            <q-input
-              v-model.number="novoPreco"
-              type="number"
-              dark
-              outlined
-              dense
-              label="PRICE (XP)"
-              class="retro-input q-mb-md snes-font"
-              color="yellow"
-            />
-
-            <q-btn
-              flat
-              label="LIST ITEM"
-              color="purple-13"
-              class="snes-font border-btn full-width"
-              :disable="!novoTitulo || !novoEmail || !novoPreco"
-              @click="criarOferta"
-            />
+             <q-input v-model="novoTitulo" dark outlined dense label="ITEM NAME" class="retro-input q-mb-md snes-font" color="yellow" />
+             <q-input v-model="novoEmail" dark outlined dense label="FOR (EMAIL)" class="retro-input q-mb-md snes-font" color="yellow" />
+             <q-input v-model.number="novoPreco" type="number" dark outlined dense label="PRICE (XP)" class="retro-input q-mb-md snes-font" color="yellow" />
+            <q-btn flat label="LIST ITEM" color="purple-13" class="snes-font border-btn full-width" :disable="!novoTitulo || !novoEmail || !novoPreco" @click="criarOferta" />
           </q-card>
 
           <div class="text-grey snes-font q-mb-sm" style="font-size: 10px">MY LISTINGS:</div>
-
           <div v-if="shopStore.minhasOfertas.length === 0" class="empty-shop q-pa-lg">
             <q-icon name="inventory_2" color="grey-8" size="lg" />
             <div class="text-grey snes-font q-mt-md" style="font-size: 10px">
-              NO LISTINGS YET.<br>CREATE YOUR FIRST OFFER ABOVE.
+              NO LISTINGS YET.
             </div>
           </div>
-
           <div v-else class="q-gutter-y-sm">
-            <div
-              v-for="offer in shopStore.minhasOfertas"
-              :key="offer.id"
-              class="retro-screen-card q-pa-sm row items-center justify-between"
-              style="min-height: 50px;"
-            >
+            <div v-for="offer in shopStore.minhasOfertas" :key="offer.id" class="retro-screen-card q-pa-sm row items-center justify-between" style="min-height: 50px;">
               <div>
                 <div class="text-white snes-font" style="font-size: 10px;">{{ offer.titulo }}</div>
                 <div class="text-grey-6 snes-font" style="font-size: 8px;">To: {{ offer.destinatario_email }}</div>
               </div>
-
               <div class="text-right">
                 <div class="text-yellow snes-font" style="font-size: 10px;">{{ offer.preco }} XP</div>
-                <q-badge
-                  v-if="offer.comprado"
-                  color="green"
-                  text-color="black"
-                  class="snes-font q-mt-xs"
-                  style="font-size: 8px;"
-                >
-                  SOLD!
-                </q-badge>
+                <q-badge v-if="offer.comprado" color="green" text-color="black" class="snes-font q-mt-xs" style="font-size: 8px;">SOLD!</q-badge>
                 <span v-else class="text-grey-6 snes-font" style="font-size: 8px;">WAITING</span>
               </div>
             </div>
@@ -178,19 +125,78 @@
         </q-tab-panel>
       </q-tab-panels>
     </div>
+
+    <div style="position: fixed; left: -9999px; top: 0; z-index: -100;">
+        <div ref="ticketRef" class="retro-ticket-container snes-font" v-if="ticketData">
+            <div class="ticket-header">
+                RUNNER'S SHOP
+                <span class="ticket-id">#{{ ticketData.id.toString().slice(0, 6) }}</span>
+            </div>
+            <div class="ticket-body">
+                <div class="ticket-row">
+                    <span class="label">ITEM:</span>
+                    <span class="value text-yellow">{{ ticketData.titulo }}</span>
+                </div>
+                <div class="ticket-row">
+                    <span class="label">PRICE:</span>
+                    <span class="value">{{ ticketData.preco }} XP</span>
+                </div>
+                 <div class="ticket-dashed-line"></div>
+                <div class="ticket-row small">
+                    <span class="label">SELLER:</span>
+                    <span class="value">{{ ticketData.criador_email }}</span>
+                </div>
+                <div class="ticket-row small">
+                    <span class="label">BUYER:</span>
+                    <span class="value">{{ ticketData.destinatario_email }}</span>
+                </div>
+            </div>
+            <div class="ticket-footer">
+                VALIDATED: {{ new Date().toLocaleDateString() }}
+                <div class="stamp">PAID</div>
+            </div>
+        </div>
+    </div>
+
+    <q-dialog v-model="showTicketDialog">
+      <q-card class="retro-screen-card text-center q-pa-md">
+        <div class="text-h6 snes-font text-yellow q-mb-md">ITEM ACQUIRED!</div>
+        <div class="text-grey-5 snes-font q-mb-md" style="font-size: 10px;">
+          SAVE THIS TICKET AND SEND TO THE SELLER AS PROOF.
+        </div>
+
+        <img v-if="generatedTicketImg" :src="generatedTicketImg" style="max-width: 100%; border: 2px solid white; border-radius: 4px;" />
+
+        <q-card-actions align="center" class="q-mt-md">
+          <q-btn flat label="CLOSE" color="red" class="snes-font border-btn" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
   </q-page>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useShopStore } from 'stores/shopStore'
+// IMPORTANTE: Importar o html2canvas
+import html2canvas from 'html2canvas';
 
 const shopStore = useShopStore()
 const tab = ref('buy')
 
+// Campos do Formulário
 const novoTitulo = ref('')
 const novoEmail = ref('')
 const novoPreco = ref(null)
+
+// Variáveis para o Ticket
+const ticketRef = ref(null)           // Referência ao elemento HTML escondido
+const ticketData = ref(null)          // Dados do item comprado para preencher o ticket
+const showTicketDialog = ref(false)   // Controla o dialog da imagem final
+const generatedTicketImg = ref(null)  // A imagem em base64 gerada
+const generatingTicket = ref(false)   // Loading state para o botão
+const currentOfferId = ref(null)      // Para saber qual botão mostrar loading
 
 onMounted(() => {
   shopStore.carregarDados()
@@ -203,13 +209,47 @@ const criarOferta = async () => {
     novoPreco.value = null
   }
 }
+
+// --- LÓGICA DE COMPRA E GERAÇÃO DE TICKET ---
+const handleBuy = async (offer) => {
+  currentOfferId.value = offer.id
+  generatingTicket.value = true;
+
+  // 1. Tenta comprar na store
+  const success = await shopStore.comprarItem(offer);
+
+  if (success) {
+    // 2. Se deu certo, prepara os dados para o ticket escondido
+    ticketData.value = offer;
+
+    // Espera o Vue atualizar o DOM escondido com os dados novos
+    await nextTick();
+
+    try {
+      // 3. Gera a imagem usando html2canvas
+      // scale: 2 melhora a qualidade da imagem (tipo retina)
+      const canvas = await html2canvas(ticketRef.value, {
+        backgroundColor: null, // Fundo transparente
+        scale: 2
+      });
+
+      // 4. Converte o canvas para imagem base64 e mostra o dialog
+      generatedTicketImg.value = canvas.toDataURL('image/png');
+      showTicketDialog.value = true;
+
+    } catch (error) {
+      console.error("Erro ao gerar ticket:", error);
+      Notify.create({message: "Error creating ticket image.", color: 'negative'})
+    }
+  }
+
+  generatingTicket.value = false;
+  currentOfferId.value = null
+}
 </script>
 
 <style scoped lang="scss">
-/* ... Mantém todo o teu estilo SCSS existente ... */
-/* Copie o estilo do teu último envio se necessário,
-   a única mudança importante foi no template HTML acima */
-
+/* MANTÉM TODO O CSS ANTERIOR AQUI... (Stars, Retro Cards, etc) */
 @function multiple-box-shadow($n) {
   $value: "#{random(2000)}px #{random(2000)}px #FFF";
   @for $i from 2 through $n {
@@ -364,5 +404,86 @@ $shadows-big: multiple-box-shadow(100);
   20%, 24% { opacity: 1; }
   25%, 29% { opacity: 0; }
   30%, 100% { opacity: 1; }
+}
+
+
+/* --- NOVO CSS PARA O TICKET RETRO --- */
+.retro-ticket-container {
+    width: 300px;
+    background-color: #1a1a2e; /* Fundo escuro azulado */
+    border: 4px solid #fff;
+    border-radius: 8px;
+    padding: 16px;
+    color: #fff;
+    box-shadow: 5px 5px 0px #000;
+    position: relative;
+    overflow: hidden;
+}
+
+.ticket-header {
+    text-align: center;
+    font-size: 14px;
+    border-bottom: 2px solid #fff;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    font-weight: bold;
+    color: yellow;
+    text-shadow: 2px 2px 0 #000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ticket-id {
+    font-size: 10px;
+    color: #aaa;
+}
+
+.ticket-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ticket-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+
+    &.small {
+        font-size: 9px;
+        color: #ccc;
+    }
+}
+
+.ticket-dashed-line {
+    border-bottom: 2px dashed #555;
+    margin: 8px 0;
+}
+
+.ticket-footer {
+    margin-top: 16px;
+    border-top: 2px solid #fff;
+    padding-top: 8px;
+    text-align: center;
+    font-size: 9px;
+    color: #888;
+    position: relative;
+}
+
+/* Selo de PAGO */
+.stamp {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    border: 3px solid red;
+    color: red;
+    padding: 2px 8px;
+    font-size: 14px;
+    font-weight: bold;
+    transform: rotate(-15deg);
+    opacity: 0.8;
+    text-shadow: 1px 1px 0 #000;
+    border-radius: 4px;
 }
 </style>

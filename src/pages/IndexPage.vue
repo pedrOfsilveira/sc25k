@@ -108,19 +108,19 @@ const confirmarVitoria = () => {
             MISSION COMPLETE!
           </h2>
 
-          <div class="login-card q-pa-sm">
+          <div class="q-pa-sm">
             <q-file
               v-model="fotoEvidence"
               dark
               outlined
-              label="TAKE PHOTO 📷"
+              label="TAKE PHOTO"
               accept="image/*"
               capture="environment"
               class="retro-input full-width q-mb-md"
               color="yellow"
             >
               <template v-slot:prepend>
-                <q-icon name="camera_alt" />
+                <q-icon name="fas fa-camera-retro" />
               </template>
             </q-file>
           </div>

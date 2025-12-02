@@ -29,7 +29,7 @@ const handleAuth = async (action) => {
         password: password.value
       })
       if (error) throw error
-      $q.notify({ type: 'positive', message: 'Conta criada! Podes entrar.' })
+      $q.notify({ type: 'positive', message: 'User created!' })
       isLogin.value = true // Volta para a tela de login
     }
   } catch (error) {
