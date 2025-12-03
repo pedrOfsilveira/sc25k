@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted, onBeforeUnmount } from "vue";
 import { useTreinoStore } from "stores/treinoStore";
 import { treinos } from "src/data/treinos.js";
 import { supabase } from "boot/supabase";
@@ -14,6 +14,43 @@ const loadingHistorico = ref(false);
 const confirmDialog = ref(false);
 const fotoEvidence = ref(null);
 
+// Variáveis do Efeito Zoom
+const activeCartuchoId = ref(null);
+const itemRefs = ref({});
+
+const setItemRef = (el, id) => {
+  if (el) itemRefs.value[id] = el;
+};
+
+let observer = null;
+
+onMounted(() => {
+  // Configuração do Observer
+  const options = {
+    root: null,
+    // Aumentei a margem para capturar melhor (faixa de 20% no meio)
+    rootMargin: '-40% 0px -40% 0px',
+    threshold: 0.1 // Precisa de pelo menos 10% do item visível nessa faixa
+  };
+
+  observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        activeCartuchoId.value = Number(entry.target.dataset.id);
+      }
+    });
+  }, options);
+
+  setTimeout(() => {
+    Object.values(itemRefs.value).forEach((el) => observer.observe(el));
+  }, 100);
+});
+
+onBeforeUnmount(() => {
+  if (observer) observer.disconnect();
+});
+
+// Funções Normais
 const abrirHistorico = async () => {
   mostrarHistorico.value = true;
   loadingHistorico.value = true;
@@ -73,19 +110,29 @@ const confirmarVitoria = () => {
     </div>
 
     <div v-if="!store.treinoAtivo" class="content-wrapper">
-      <div class="select mb q-pa-lg street-font flex items-center text-h4 snes-blink">
+      <div class="select mb q-pa-md street-font flex items-center text-h3 snes-blink text-center">
         SELECT STAGE
       </div>
 
-      <div class="cartuchos-grid q-mt-lg">
-        <Cartucho
+      <div class="cartuchos-grid">
+        <div
           v-for="treino in listaTreinos"
           :key="treino.id"
-          :treino="treino"
+          :data-id="treino.id"
+          :ref="(el) => setItemRef(el, treino.id)"
+          class="cartucho-wrapper"
+          :class="{ 'active-card': activeCartuchoId === treino.id }"
           @click="selecionarTreino(treino.id)"
-        />
+        >
+          <Cartucho :treino="treino" />
+        </div>
+      </div>
+       <div class="select mb q-pa-md street-font flex items-center text-h3 snes-blink text-center">
+        THE END FOR NOW
       </div>
     </div>
+
+
 
     <div v-else class="content-wrapper">
       <div class="full-width q-mt-md" style="max-width: 600px">
@@ -108,7 +155,7 @@ const confirmarVitoria = () => {
             MISSION COMPLETE!
           </h2>
 
-          <div class="q-pa-sm">
+          <div class="login-card q-pa-sm">
             <q-file
               v-model="fotoEvidence"
               dark
@@ -120,7 +167,7 @@ const confirmarVitoria = () => {
               color="yellow"
             >
               <template v-slot:prepend>
-                <q-icon name="fas fa-camera-retro" />
+                <q-icon name="camera_alt" />
               </template>
             </q-file>
           </div>
@@ -245,6 +292,30 @@ $shadows-big: multiple-box-shadow(100);
   flex-direction: column;
   align-items: center;
 }
+
+// --- AJUSTES DO GRID ---
+.cartuchos-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 50px;
+  width: 100%;
+}
+
+.cartucho-wrapper {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform-origin: center center;
+  filter: brightness(0.6) grayscale(50%); /* Itens fora de foco ficam mais apagados */
+  opacity: 0.7;
+}
+
+.active-card {
+  transform: scale(1.15);
+  z-index: 10;
+  filter: brightness(1.1) grayscale(0%); /* Item focado brilha */
+  opacity: 1;
+}
+// -----------------------
 
 .border-btn {
   border: 2px solid currentColor;
@@ -386,28 +457,12 @@ $shadows-big: multiple-box-shadow(100);
     inset -1px -1px 6px 3px rgba(0, 0, 0, 0.2);
 }
 
-.cartuchos-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 50px;
-  width: 100%;
-}
-
-.cartucho-wrapper {
-  transition: transform 0.1s;
-}
-.cartucho-wrapper:active {
-  transform: scale(0.95);
-  filter: brightness(0.8);
-}
-
 .select {
   text-shadow: 2px 2px 0px #000;
-  padding: 6px;
+  height: 30vh;
 }
 
-.mb { margin-bottom: 50px; }
+.mb { margin-bottom: 65px; }
 
 .star-background {
   position: fixed;
