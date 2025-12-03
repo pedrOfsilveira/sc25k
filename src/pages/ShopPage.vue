@@ -335,7 +335,7 @@ const confirmPurchase = async () => {
 
 <q-dialog v-model="showTicketDialog">
       <q-card class="retro-screen-card text-center q-pa-md">
-        <div class="text-h6 snes-font text-yellow q-mb-md">ITEM ACQUIRED!</div>
+        <div class="text-h6 mario-font text-yellow q-mb-md">ITEM ACQUIRED!</div>
         <div class="text-grey-5 snes-font q-mb-md" style="font-size: 10px;">
           SAVE THIS TICKET AND SEND TO THE SELLER AS PROOF.
         </div>

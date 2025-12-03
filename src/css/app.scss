@@ -40,3 +40,39 @@ body {
   font-family: 'street';
 }
 
+@font-face {
+  font-family: 'minecraft';
+  src: url(/src/css/fonts/minecraft.ttf)
+}
+
+.minecraft-font {
+  font-family: 'minecraft';
+}
+
+@font-face {
+  font-family: 'daydream';
+  src: url(/src/css/fonts/daydream.otf)
+}
+
+.daydream-font {
+  font-family: 'daydream';
+}
+
+
+@font-face {
+  font-family: 'mario';
+  src: url(/src/css/fonts/mario.ttf)
+}
+
+.mario-font {
+  font-family: 'daydream';
+}
+
+@font-face {
+  font-family: 'upheaval';
+  src: url(/src/css/fonts/upheaval.fon)
+}
+
+.upheaval-font {
+  font-family: 'upheaval';
+}
