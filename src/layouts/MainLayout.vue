@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { supabase } from "boot/supabase";
 import { useTreinoStore } from "stores/treinoStore";
@@ -19,10 +19,18 @@ const resetTab = () => {
 
   if (path === '/shop') {
     tab.value = 'shop';
+  } else if (path === '/profile') {
+    tab.value = 'profile';
   } else {
     tab.value = 'home';
   }
 };
+
+// Watch for route changes and reset tab
+watch(() => route.path, async () => {
+  await nextTick();
+  resetTab();
+});
 
 const getNomeTreino = (id) => {
   const t = treinos.find(item => item.id === id);
@@ -37,6 +45,11 @@ const irParaHome = () => {
 const irParaShop = () => {
   tab.value = 'shop';
   router.push('/shop');
+};
+
+const irParaProfile = () => {
+  tab.value = 'profile';
+  router.push('/profile');
 };
 
 const logout = async () => {
@@ -117,9 +130,9 @@ const abrirHistorico = async () => {
           <div
             class="controller-port"
             :class="{ 'plugged-in': tab === 'profile' }"
-            @click="logout()"
+            @click="irParaProfile()"
           >
-            <span class="label">QUIT</span>
+            <span class="label">PROFILE</span>
             <div class="port-hole">
               <div class="pin-holes"></div>
             </div>
@@ -232,7 +245,7 @@ const abrirHistorico = async () => {
   </q-layout>
 </template>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .blink {
   animation: blinker 1s linear infinite;
 }

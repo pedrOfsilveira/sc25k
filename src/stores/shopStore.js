@@ -23,6 +23,8 @@ export const useShopStore = defineStore('shop', {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
+        const userName = user.user_metadata?.name || user.email;
+
         const { data: historico, error: erroHist } = await supabase
           .from('historico_treinos')
           .select('pontuacao')
@@ -35,7 +37,7 @@ export const useShopStore = defineStore('shop', {
         const { data: ofertasRecebidas, error: erroRecebidas } = await supabase
           .from('loja_ofertas')
           .select('*')
-          .ilike('destinatario_email', user.email)
+          .ilike('destinatario_name', userName)
           .order('comprado', { ascending: true })
           .order('created_at', { ascending: false });
 
@@ -63,19 +65,31 @@ export const useShopStore = defineStore('shop', {
       }
     },
 
-    async criarOferta(emailDestino, titulo, preco) {
+    async criarOferta(nomeDestino, titulo, preco) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
+        const userName = user.user_metadata?.name || user.email;
+        const avatarUrl = user.user_metadata?.avatar_url || null;
 
-        const { error } = await supabase.from('loja_ofertas').insert({
+        const offerData = {
           criador_id: user.id,
-          criador_email: user.email,
-          destinatario_email: emailDestino.trim(),
+          criador_name: userName,
+          destinatario_name: nomeDestino.trim(),
           titulo: titulo,
           preco: preco
-        });
+        };
 
-        if (error) throw error;
+        // Only add avatar if the column exists (for backwards compatibility)
+        if (avatarUrl) {
+          offerData.criador_avatar = avatarUrl;
+        }
+
+        const { error } = await supabase.from('loja_ofertas').insert(offerData);
+
+        if (error) {
+          console.error('Error creating offer:', error);
+          throw error;
+        }
 
         Notify.create({
           message: 'ITEM LISTED SUCCESSFULLY!',
@@ -88,7 +102,14 @@ export const useShopStore = defineStore('shop', {
         return true;
 
       } catch (error) {
-        Notify.create({ message: 'Error listing item', color: 'negative' });
+        console.error('Error creating offer:', error);
+        const errorMsg = error.message || error.details || 'Error listing item';
+        Notify.create({
+          message: errorMsg,
+          color: 'negative',
+          timeout: 5000,
+          position: 'top'
+        });
         return false;
       }
     },
@@ -127,6 +148,42 @@ export const useShopStore = defineStore('shop', {
       } catch (error) {
         Notify.create({ message: 'Transaction failed', color: 'negative' });
         return false;
+      }
+    },
+
+    async deletarOferta(offerId) {
+      try {
+        const { error } = await supabase
+          .from('loja_ofertas')
+          .delete()
+          .eq('id', offerId);
+
+        if (error) throw error;
+
+        Notify.create({
+          message: 'OFFER DELETED!',
+          color: 'positive',
+          icon: 'delete',
+          classes: 'snes-font'
+        });
+
+        this.carregarDados();
+        return true;
+
+      } catch (error) {
+        Notify.create({ message: 'Failed to delete offer', color: 'negative' });
+        return false;
+      }
+    },
+
+    async buscarUsuarioPorNome(nome) {
+      try {
+        // This requires a user_profiles table or similar
+        // For now, we'll just return the name since we're using metadata
+        return { name: nome, avatar_url: '' };
+      } catch (error) {
+        console.error('Error searching user:', error);
+        return null;
       }
     }
   }

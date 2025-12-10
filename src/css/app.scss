@@ -7,12 +7,12 @@
   --retro-accent: #f8d928;
   --retro-text: #ffffff;
 
-  --snes-light: #C9CACE;
-  --snes-dark: #81868A;
-  --snes-blue: #1454B4;
-  --snes-yellow: #D3AD31;
-  --snes-red: #BB192B;
-  --snes-green: #14875A;
+  --snes-light: #c9cace;
+  --snes-dark: #81868a;
+  --snes-blue: #1454b4;
+  --snes-yellow: #d3ad31;
+  --snes-red: #bb192b;
+  --snes-green: #14875a;
 }
 
 body {
@@ -42,7 +42,7 @@ body {
 
 @font-face {
   font-family: 'minecraft';
-  src: url(/src/css/fonts/minecraft.ttf)
+  src: url(/src/css/fonts/minecraft.ttf);
 }
 
 .minecraft-font {
@@ -51,17 +51,16 @@ body {
 
 @font-face {
   font-family: 'daydream';
-  src: url(/src/css/fonts/daydream.otf)
+  src: url(/src/css/fonts/daydream.otf);
 }
 
 .daydream-font {
   font-family: 'daydream';
 }
 
-
 @font-face {
   font-family: 'mario';
-  src: url(/src/css/fonts/mario.ttf)
+  src: url(/src/css/fonts/mario.ttf);
 }
 
 .mario-font {
@@ -70,9 +69,48 @@ body {
 
 @font-face {
   font-family: 'upheaval';
-  src: url(/src/css/fonts/upheaval.fon)
+  src: url(/src/css/fonts/upheaval.fon);
 }
 
 .upheaval-font {
   font-family: 'upheaval';
+}
+
+@font-face {
+  font-family: 'star';
+  src: url(/src/css/fonts/star.ttf);
+}
+
+.star-font {
+  font-family: 'star';
+}
+
+@font-face {
+  font-family: 'alien';
+  src: url(/src/css/fonts/alien.otf);
+}
+
+.alien-font {
+  font-family: 'alien';
+}
+
+.street-yellow {
+  color: $street-yellow;
+}
+
+@font-face {
+  font-family: 'bttf';
+  src: url(/src/css/fonts/bttf.ttf);
+}
+
+.bttf-font {
+  font-family: 'bttf';
+}
+.bttf {
+  background: linear-gradient(to bottom, #F04D22 0%, #F8911B 45%, #FFCA14 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: .5px #008AD0;
+  filter: drop-shadow(1px .5px 0px #008AD0);
 }

@@ -6,6 +6,7 @@ import { useQuasar } from 'quasar'
 
 const email = ref('')
 const password = ref('')
+const name = ref('')
 const loading = ref(false)
 const isLogin = ref(true) // Controla se estamos a fazer login ou cadastro
 const router = useRouter()
@@ -24,13 +25,19 @@ const handleAuth = async (action) => {
       router.push('/') // Manda o user para a Home se der certo
     } else {
       // --- LÓGICA DE CRIAR CONTA ---
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: email.value,
-        password: password.value
+        password: password.value,
+        options: {
+          data: {
+            name: name.value
+          }
+        }
       })
       if (error) throw error
       $q.notify({ type: 'positive', message: 'User created!' })
       isLogin.value = true // Volta para a tela de login
+      name.value = ''
     }
   } catch (error) {
     $q.notify({ type: 'negative', message: error.message })
@@ -94,16 +101,24 @@ const handleAuth = async (action) => {
       </div>
       <div class="q-input-wrapper">
         <q-input
+          v-if="!isLogin"
+          borderless
+          v-model="name"
+          placeholder="your name"
+          dense
+          class="q-mb-sm snes-font"
+        />
+        <q-input
           borderless
           v-model="email"
-          placeholder="insert your email"
+          placeholder="your email"
           dense
           class="q-mb-sm snes-font"
         />
         <q-input
           borderless
           v-model="password"
-          placeholder="and now your password"
+          placeholder="and your password"
           type="password"
           dense
           class="snes-font"
@@ -113,12 +128,13 @@ const handleAuth = async (action) => {
       <div class="login-action-card">
         <div class="btn-holder">
           <div class="btn-wrapper down">
-            <q-btn flat class="login-btn-green" icon="login" @click="handleAuth('login')"></q-btn>
+            <q-btn v-if="isLogin" flat class="login-btn-green" icon="login" @click="handleAuth('login')"></q-btn>
+            <q-btn v-else flat class="login-btn-green" icon="check" @click="handleAuth('register')"></q-btn>
             <q-btn flat class="login-btn-blue"></q-btn>
           </div>
           <div class="btn-wrapper up">
             <q-btn flat class="login-btn-yellow"></q-btn>
-            <q-btn flat class="login-btn-red" icon="person_add" @click="handleAuth('register')"></q-btn>
+            <q-btn flat class="login-btn-red" :icon="isLogin ? 'person_add' : 'arrow_back'" @click="isLogin = !isLogin"></q-btn>
           </div>
         </div>
       </div>

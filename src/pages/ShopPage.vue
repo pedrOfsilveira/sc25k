@@ -8,7 +8,7 @@ const shopStore = useShopStore();
 const tab = ref('buy');
 
 const novoTitulo = ref('');
-const novoEmail = ref('');
+const novoNome = ref('');
 const novoPreco = ref(null);
 
 const ticketRef = ref(null);
@@ -40,9 +40,10 @@ const downloadTicket = () => {
 };
 
 const criarOferta = async () => {
-  const sucesso = await shopStore.criarOferta(novoEmail.value, novoTitulo.value, novoPreco.value)
+  const sucesso = await shopStore.criarOferta(novoNome.value, novoTitulo.value, novoPreco.value)
   if (sucesso) {
     novoTitulo.value = ''
+    novoNome.value = ''
     novoPreco.value = null
   }
 };
@@ -105,7 +106,7 @@ const confirmPurchase = async () => {
       <div id="stars3"></div>
     </div>
 
-    <div class="content-wrapper q-px-md full-width" style="max-width: 600px">
+    <div class="content-wrapper q-px-md">
       <div class="text-center q-mb-md">
         <h2 class="text-h4 street-font text-yellow snes-blink" style="text-shadow: 4px 4px 0 #000; margin-bottom: 10px;">
           ITEM SHOP
@@ -161,17 +162,23 @@ const confirmPurchase = async () => {
               :class="{ 'item-sold': offer.comprado }"
             >
               <div class="row items-center justify-between">
+                <div class="col-auto q-mr-sm">
+                  <div class="mini-avatar">
+                    <img v-if="offer.criador_avatar" :src="offer.criador_avatar" />
+                    <q-icon v-else name="person" color="grey-5" size="sm" />
+                  </div>
+                </div>
                 <div class="col q-pa-md">
                   <div class="text-yellow snes-font text-subtitle2">{{ offer.titulo }}</div>
                   <div class="text-grey-5 snes-font" style="font-size: 8px; margin-top: 4px;">
-                    FROM: {{ offer.criador_email || 'Unknown User' }}
+                    FROM: {{ offer.criador_name || 'Unknown User' }}
                   </div>
                 </div>
 
                 <div class="col-auto text-right">
                   <div class="snes-font text-white q-mb-sm">{{ offer.preco }} XP</div>
 
-                  <div v-if="offer.comprado">
+                  <div v-if="offer.comprado" class="q-gutter-y-xs">
                     <q-btn
                       flat
                       size="sm"
@@ -181,17 +188,36 @@ const confirmPurchase = async () => {
                       class="border-btn snes-font full-width"
                       @click="viewTicket(offer)"
                     />
+                    <q-btn
+                      flat
+                      dense
+                      size="sm"
+                      color="red"
+                      icon="delete"
+                      class="border-btn snes-font full-width"
+                      @click="shopStore.deletarOferta(offer.id)"
+                    />
                   </div>
 
-                  <q-btn
-                    v-else
-                    size="sm"
-                    color="positive"
-                    label="BUY"
-                    class="retro-btn snes-font full-width"
-                    :loading="generatingTicket && currentOfferId === offer.id"
-                    @click="askToBuy(offer)"
-                  />
+                  <div v-else class="q-gutter-y-xs">
+                    <q-btn
+                      size="sm"
+                      color="positive"
+                      label="BUY"
+                      class="retro-btn snes-font full-width"
+                      :loading="generatingTicket && currentOfferId === offer.id"
+                      @click="askToBuy(offer)"
+                    />
+                    <q-btn
+                      flat
+                      dense
+                      size="sm"
+                      color="red"
+                      icon="delete"
+                      class="border-btn snes-font full-width"
+                      @click="shopStore.deletarOferta(offer.id)"
+                    />
+                  </div>
                 </div>
               </div>
             </q-card>
@@ -213,11 +239,11 @@ const confirmPurchase = async () => {
               color="yellow"
             />
             <q-input
-              v-model="novoEmail"
+              v-model="novoNome"
               dark
               outlined
               dense
-              label="FOR (EMAIL)"
+              label="FOR (NAME)"
               class="retro-input q-mb-md snes-font"
               color="yellow"
             />
@@ -236,7 +262,7 @@ const confirmPurchase = async () => {
               label="LIST ITEM"
               color="purple-13"
               class="snes-font border-btn full-width"
-              :disable="!novoTitulo || !novoEmail || !novoPreco"
+              :disable="!novoTitulo || !novoNome || !novoPreco"
               @click="criarOferta"
             />
           </q-card>
@@ -257,22 +283,33 @@ const confirmPurchase = async () => {
               class="retro-screen-card q-pa-sm row items-center justify-between"
               style="min-height: 50px;"
             >
-              <div>
+              <div class="col">
                 <div class="text-white snes-font" style="font-size: 10px;">{{ offer.titulo }}</div>
-                <div class="text-grey-6 snes-font" style="font-size: 8px;">To: {{ offer.destinatario_email }}</div>
+                <div class="text-grey-6 snes-font" style="font-size: 8px;">To: {{ offer.destinatario_name }}</div>
               </div>
-              <div class="text-right">
+              <div class="col-auto text-right">
                 <div class="text-yellow snes-font" style="font-size: 10px;">{{ offer.preco }} XP</div>
-                <q-badge
-                  v-if="offer.comprado"
-                  color="green"
-                  text-color="black"
-                  class="snes-font q-mt-xs"
-                  style="font-size: 8px;"
-                >
-                  SOLD!
-                </q-badge>
-                <span v-else class="text-grey-6 snes-font" style="font-size: 8px;">WAITING</span>
+                <div class="row items-center q-gutter-x-xs q-mt-xs">
+                  <q-badge
+                    v-if="offer.comprado"
+                    color="green"
+                    text-color="black"
+                    class="snes-font"
+                    style="font-size: 8px;"
+                  >
+                    SOLD!
+                  </q-badge>
+                  <span v-else class="text-grey-6 snes-font" style="font-size: 8px;">WAITING</span>
+                  <q-btn
+                    flat
+                    dense
+                    round
+                    size="xs"
+                    icon="delete"
+                    color="red"
+                    @click="shopStore.deletarOferta(offer.id)"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -281,39 +318,39 @@ const confirmPurchase = async () => {
     </div>
 
     <div style="position: fixed; left: -9999px; top: 0; z-index: -100;">
-      <div ref="ticketRef" class="retro-ticket-container snes-font" v-if="ticketData">
-        <div class="ticket-header">
+      <div ref="ticketRef" class="retro-ticket-container mario-font" v-if="ticketData">
+        <div class="ticket-header star-font street-yellow">
           RUNNER'S SHOP
           <span class="ticket-id">#{{ ticketData.id.toString().slice(0, 6) }}</span>
         </div>
         <div class="ticket-body">
           <div class="ticket-row">
-            <span class="label">ITEM:</span>
-            <span class="value text-yellow">{{ ticketData.titulo }}</span>
+            <span class="label ">ITEM:</span>
+            <span class="value street-yellow">{{ ticketData.titulo }}</span>
           </div>
           <div class="ticket-row">
-            <span class="label">PRICE:</span>
-            <span class="value">{{ ticketData.preco }} XP</span>
+            <span class="label ">PRICE:</span>
+            <span class="value text-cyan-12">{{ ticketData.preco }} XP</span>
           </div>
           <div class="ticket-dashed-line"></div>
           <div class="ticket-row small">
             <span class="label">SELLER:</span>
-            <span class="value">{{ ticketData.criador_email }}</span>
+            <span class="value">{{ ticketData.criador_name }}</span>
           </div>
           <div class="ticket-row small">
             <span class="label">BUYER:</span>
-            <span class="value">{{ ticketData.destinatario_email }}</span>
+            <span class="value">{{ ticketData.destinatario_name }}</span>
           </div>
         </div>
-        <div class="ticket-footer">
+        <div class="ticket-footer star-font">
           VALIDATED: {{ ticketData.comprado_em ? new Date(ticketData.comprado_em).toLocaleDateString() : new Date().toLocaleDateString() }}
-          <div class="stamp">PAID</div>
+          <div class="stamp alien-font">PAID</div>
         </div>
       </div>
     </div>
 
-    <q-dialog v-model="showConfirmDialog" persistent backdrop-filter="blur(4px)">
-      <q-card class="retro-screen-card text-center q-pa-md" style="width: 300px; border: 4px solid white;">
+    <q-dialog v-model="showConfirmDialog" persistent backdrop-filter="blur(4px)" class="ticket-dialog">
+      <q-card class="retro-screen-card text-center q-pa-md">
         <div class="crt-scanlines"></div>
         <q-card-section>
           <q-icon name="help_outline" color="yellow" size="md" class="snes-blink" />
@@ -334,10 +371,10 @@ const confirmPurchase = async () => {
     </q-dialog>
 
 <q-dialog v-model="showTicketDialog">
-      <q-card class="retro-screen-card text-center q-pa-md">
-        <div class="text-h6 mario-font text-yellow q-mb-md">ITEM ACQUIRED!</div>
-        <div class="text-grey-5 snes-font q-mb-md" style="font-size: 10px;">
-          SAVE THIS TICKET AND SEND TO THE SELLER AS PROOF.
+      <q-card class="retro-screen-card  ticket-retro-screen text-center q-pa-md">
+        <div class="text-h4 bttf-font bttf q-mb-xs">TICKET ACQUIRED!</div>
+        <div class="bttf-font q-mb-md" style="font-size: 8px;">
+          SAVE IT AND SEND TO THE SELLER AS PROOF.
         </div>
 
         <img
@@ -392,6 +429,8 @@ $shadows-big: multiple-box-shadow(100);
   position: relative;
   z-index: 1;
   width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
 }
@@ -471,12 +510,16 @@ $shadows-big: multiple-box-shadow(100);
 }
 
 .retro-screen-card {
-  background-color: #101020;
+  background-color: #090a0f;
   border: 2px solid #fff;
   box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
   border-radius: 4px;
 }
 
+.ticket-retro-screen {
+  padding: 20px;
+  transform: translateY(-50px) !important;
+}
 .retro-btn {
   border: 2px solid white;
   border-radius: 0;
@@ -525,8 +568,8 @@ $shadows-big: multiple-box-shadow(100);
 
 .retro-ticket-container {
   width: 300px;
-  background-color: #1a1a2e;
-  border: 4px solid #fff;
+  background-color: #090a0f;
+  border: 2px solid #fff;
   border-radius: 8px;
   padding: 16px;
   color: #fff;
@@ -541,9 +584,6 @@ $shadows-big: multiple-box-shadow(100);
   border-bottom: 2px solid #fff;
   padding-bottom: 8px;
   margin-bottom: 12px;
-  font-weight: bold;
-  color: yellow;
-  text-shadow: 2px 2px 0 #000;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -555,6 +595,7 @@ $shadows-big: multiple-box-shadow(100);
 }
 
 .ticket-body {
+  font-family: 'star';
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -588,7 +629,7 @@ $shadows-big: multiple-box-shadow(100);
 
 .stamp {
   position: absolute;
-  bottom: 5px;
+  bottom: 3px;
   right: 5px;
   border: 3px solid red;
   color: red;
@@ -599,6 +640,24 @@ $shadows-big: multiple-box-shadow(100);
   opacity: 0.8;
   text-shadow: 1px 1px 0 #000;
   border-radius: 4px;
+}
+
+.mini-avatar {
+  width: 40px;
+  height: 40px;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 }
 
 </style>
