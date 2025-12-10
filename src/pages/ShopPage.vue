@@ -351,7 +351,6 @@ const confirmPurchase = async () => {
 
     <q-dialog v-model="showConfirmDialog" persistent backdrop-filter="blur(4px)" class="ticket-dialog">
       <q-card class="retro-screen-card text-center q-pa-md">
-        <div class="crt-scanlines"></div>
         <q-card-section>
           <q-icon name="help_outline" color="yellow" size="md" class="snes-blink" />
           <div class="text-h6 text-yellow snes-font q-mt-sm">CONFIRM PURCHASE</div>

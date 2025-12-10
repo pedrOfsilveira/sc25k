@@ -153,7 +153,6 @@ const abrirHistorico = async () => {
         @hide="resetTab()"
       >
         <q-card class="retro-screen-card">
-          <div class="crt-scanlines"></div>
 
           <q-bar class="retro-header q-pa-md">
             <q-icon name="save" color="yellow" size="xs" />

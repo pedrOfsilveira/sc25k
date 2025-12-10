@@ -227,17 +227,16 @@ const confirmarVitoria = () => {
       </div>
     </div>
 
-    <q-dialog v-model="confirmDialog" persistent backdrop-filter="blur(4px)">
-      <q-card class="retro-screen-card" style="width: 300px; border: 4px solid white;">
-        <div class="crt-scanlines"></div>
+    <q-dialog v-model="confirmDialog" persistent backdrop-filter="blur(4px)" class="retro-dialog">
+      <q-card class="retro-screen-card text-center q-pa-md" style="min-width: 300px;">
 
-        <q-card-section class="text-center q-pt-lg">
+        <q-card-section class="q-pt-md">
           <q-icon name="warning" color="red" size="md" class="snes-blink" />
           <div class="text-h6 text-red snes-font q-mt-sm">WARNING!</div>
 
           <div class="text-white snes-font q-my-md text-subtitle2">
             DO YOU WANT TO GIVE UP?
-            <br>
+            <br><br>
             <span class="text-grey-5 text-caption">
               PROGRESS WILL BE SAVED AS <span class="text-red">INCOMPLETE</span>.
             </span>
@@ -265,7 +264,7 @@ const confirmarVitoria = () => {
   </q-page>
 </template>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @function multiple-box-shadow($n) {
   $value: "#{random(2000)}px #{random(2000)}px #FFF";
   @for $i from 2 through $n {
@@ -515,5 +514,13 @@ $shadows-big: multiple-box-shadow(100);
 @keyframes bounce {
   from { transform: translateY(0); }
   to { transform: translateY(-10px); }
+}
+
+.retro-screen-card {
+  background-color: #090a0f;
+  border: 2px solid #fff;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+  border-radius: 4px;
+  position: relative;
 }
 </style>

@@ -195,7 +195,7 @@ const logout = async () => {
 
     <div class="content-wrapper q-px-md">
       <div class="text-center q-mb-md">
-        <h2 class="text-h4 street-font text-yellow snes-blink" style="text-shadow: 4px 4px 0 #000; margin-bottom: 10px;">
+        <h2 class="text-h4 street-font snes-blink" style="text-shadow: 4px 4px 0 #000; margin-bottom: 10px;">
           PROFILE
         </h2>
       </div>
@@ -235,40 +235,42 @@ const logout = async () => {
                   dense
                   round
                   icon="edit"
-                  color="grey-5"
+                  color="yellow"
                   size="sm"
-                  class="q-ml-sm"
+                  class="q-ml-sm edit-name-btn"
                   @click="startEditingName"
                 />
               </div>
-              <div v-else class="row items-center q-gutter-x-sm">
+              <div v-else class="edit-name-container">
                 <q-input
                   v-model="newName"
                   dark
                   outlined
                   dense
-                  class="retro-input snes-font"
+                  class="retro-input snes-font name-input"
                   color="yellow"
-                  style="max-width: 200px;"
+                  placeholder="Enter new name"
+                  @keyup.enter="updateName"
+                  @keyup.esc="editingName = false"
                 />
-                <q-btn
-                  flat
-                  dense
-                  round
-                  icon="check"
-                  color="green"
-                  size="sm"
-                  @click="updateName"
-                />
-                <q-btn
-                  flat
-                  dense
-                  round
-                  icon="close"
-                  color="red"
-                  size="sm"
-                  @click="editingName = false"
-                />
+                <div class="edit-buttons">
+                  <q-btn
+                    flat
+                    dense
+                    icon="check"
+                    color="green"
+                    class="border-btn confirm-btn"
+                    @click="updateName"
+                  />
+                  <q-btn
+                    flat
+                    dense
+                    icon="close"
+                    color="red"
+                    class="border-btn cancel-btn"
+                    @click="editingName = false"
+                  />
+                </div>
               </div>
               <div class="text-grey-5 snes-font" style="font-size: 10px; margin-top: 4px;">
                 {{ email }}
@@ -461,7 +463,7 @@ $shadows-big: multiple-box-shadow(100);
   width: 80px;
   height: 80px;
   border: 2px solid #fff;
-  border-radius: 8px;
+  border-radius: 4px;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
@@ -536,6 +538,50 @@ $shadows-big: multiple-box-shadow(100);
 :deep(.retro-input .q-field__control) {
   border-radius: 0 !important;
   border: 2px solid #555;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+:deep(.retro-input .q-field__native) {
+  color: #fff;
+}
+
+.edit-name-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 250px;
+}
+
+.name-input {
+  width: 100%;
+}
+
+.edit-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-name-btn {
+  border: 2px solid transparent;
+  transition: all 0.2s;
+  
+  &:hover {
+    border-color: currentColor;
+    background-color: rgba(255, 255, 0, 0.1);
+  }
+}
+
+.confirm-btn,
+.cancel-btn {
+  flex: 1;
+  padding: 8px 16px;
+  font-size: 12px;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
 }
 
 .border-btn {

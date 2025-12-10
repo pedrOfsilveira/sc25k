@@ -158,7 +158,13 @@ export const useShopStore = defineStore('shop', {
           .delete()
           .eq('id', offerId);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Delete error:', error);
+          throw error;
+        }
+
+        // Reload data to refresh the lists
+        await this.carregarDados();
 
         Notify.create({
           message: 'OFFER DELETED!',
@@ -167,11 +173,15 @@ export const useShopStore = defineStore('shop', {
           classes: 'snes-font'
         });
 
-        this.carregarDados();
         return true;
 
       } catch (error) {
-        Notify.create({ message: 'Failed to delete offer', color: 'negative' });
+        console.error('Failed to delete offer:', error);
+        Notify.create({
+          message: error.message || 'Failed to delete offer',
+          color: 'negative',
+          timeout: 5000
+        });
         return false;
       }
     },
