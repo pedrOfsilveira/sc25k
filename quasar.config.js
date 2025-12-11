@@ -141,7 +141,7 @@ export default defineConfig((/* ctx */) => {
         display: "standalone",
         orientation: "portrait",
         background_color: "#000000",
-        theme_color: "#8c52ff",
+        theme_color: "#000000",
         icons: [
           {
             src: "icons/icon-128x128.png",
