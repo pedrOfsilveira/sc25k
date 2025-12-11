@@ -17,6 +17,8 @@ const historico = ref([]);
 const loadingHistorico = ref(false);
 const confirmDialog = ref(false);
 const fotoEvidence = ref(null);
+const daySelectDialog = ref(false);
+const selectedWeek = ref(null);
 
 // Variáveis do Efeito Zoom
 const activeCartuchoId = ref(null);
@@ -71,7 +73,25 @@ const abrirHistorico = async () => {
 };
 
 const selecionarTreino = (id) => {
-  store.carregarTreino(id);
+  selectedWeek.value = id;
+  daySelectDialog.value = true;
+};
+
+const selecionarDia = (dia) => {
+  store.carregarTreino(selectedWeek.value, dia);
+  daySelectDialog.value = false;
+};
+
+const isWeekUnlocked = (weekId) => {
+  // Week 1 is always unlocked
+  if (weekId === 1) return true;
+
+  // Check if previous week is completed (all 3 days)
+  return store.isWeekCompleted(weekId - 1);
+};
+
+const getDayStatus = (weekId, day) => {
+  return store.getDayStatus(weekId, day);
 };
 
 const toggleTimer = () => {
@@ -125,10 +145,13 @@ const confirmarVitoria = () => {
           :data-id="treino.id"
           :ref="(el) => setItemRef(el, treino.id)"
           class="cartucho-wrapper"
-          :class="{ 'active-card': activeCartuchoId === treino.id }"
-          @click="selecionarTreino(treino.id)"
+          :class="{
+            'active-card': activeCartuchoId === treino.id,
+            'locked': !isWeekUnlocked(treino.id)
+          }"
+          @click="isWeekUnlocked(treino.id) ? selecionarTreino(treino.id) : null"
         >
-          <Cartucho :treino="treino" />
+          <Cartucho :treino="treino" :locked="!isWeekUnlocked(treino.id)" />
         </div>
       </div>
        <div class="select mb q-pa-md street-font flex items-center text-h3 snes-blink text-center">
@@ -159,36 +182,38 @@ const confirmarVitoria = () => {
             MISSION COMPLETE!
           </h2>
 
-          <div class="login-card q-pa-sm">
-            <q-file
-              v-model="fotoEvidence"
-              dark
-              outlined
-              label="TAKE PHOTO"
-              accept="image/*"
-              capture="environment"
-              class="retro-input full-width q-mb-md"
-              color="yellow"
-            >
-              <template v-slot:prepend>
-                <q-icon name="camera_alt" />
-              </template>
-            </q-file>
+          <div class="login-card q-pa-sm q-mb-md">
+            <div class="login-action-card">
+              <div class="evidence-buttons">
+                <input
+                  type="file"
+                  ref="fileInput"
+                  accept="image/*"
+                  capture="environment"
+                  style="display: none"
+                  @change="(e) => fotoEvidence = e.target.files[0]"
+                />
+                <div class="photo-btn-wrapper" @click="$refs.fileInput.click()">
+                  <div class="login-btn-blue photo-btn">
+                    <q-icon name="camera_alt" size="24px" color="white" />
+                  </div>
+                </div>
+                <q-btn
+                  flat
+                  class="login-btn-green photo-btn"
+                  :disabled="!fotoEvidence"
+                  :loading="store.salvando"
+                  @click="confirmarVitoria"
+                >
+                  <q-icon name="send" size="20px" color="white" />
+                </q-btn>
+              </div>
+            </div>
           </div>
 
           <div class="text-white q-mb-lg s-font" style="font-size: 0.7rem">
-            UPLOAD EVIDENCE TO SAVE
+            {{ fotoEvidence ? 'TAP SEND TO SAVE' : 'TAP CAMERA TO UPLOAD EVIDENCE' }}
           </div>
-
-          <q-btn
-            label="CONFIRM UPLOAD"
-            color="positive"
-            text-color="white"
-            class="retro-btn full-width q-py-md"
-            :disable="!fotoEvidence"
-            :loading="store.salvando"
-            @click="confirmarVitoria"
-          />
         </div>
 
         <div v-else class="text-center">
@@ -252,15 +277,56 @@ const confirmarVitoria = () => {
             flat
             label="NO"
             color="green-13"
-            class="alien-font"
+            class="alien-font border-btn"
             @click="retomarTreino"
           />
           <q-btn
             flat
             label="YES"
             color="red-13"
-            class="alien-font"
+            class="alien-font border-btn"
             @click="confirmarCancelamento"
+          />
+        </div>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="daySelectDialog" backdrop-filter="blur(4px)" class="retro-dialog">
+      <q-card class="confirm-dialog-card pretty-day-dialog">
+        <div class="dialog-card-header justify-center">
+          <div class="text-center">
+            <div class="star-font text-accent text-h5" style="text-shadow: 3px 3px 0 #000">CHOOSE AN ADVENTURE</div>
+            <div class="alien-font text-grey-5 caption-10 q-mt-xs">Select DAY 1, 2 or 3</div>
+          </div>
+        </div>
+
+        <div class="dialog-card-body">
+          <div class="day-selection-grid q-gutter-md">
+            <q-btn
+              v-for="day in 3"
+              :key="day"
+              flat
+              :size="'md'"
+              :color="getDayStatus(selectedWeek, day) === 'completed' ? 'positive' : 'info'"
+              class="border-btn alien-font day-btn fancy-day-btn"
+              @click="selecionarDia(day)"
+            >
+              <div class="day-btn-content">
+                <q-icon :name="getDayStatus(selectedWeek, day) === 'completed' ? 'check_circle' : 'bolt'" size="20px" class="q-mr-sm" />
+                <span class="alien-font">DAY {{ day }}</span>
+              </div>
+            </q-btn>
+          </div>
+        </div>
+
+        <div class="dialog-card-actions justify-center">
+          <q-btn
+            flat
+            size="sm"
+            label="CANCEL"
+            color="info"
+            class="border-btn alien-font"
+            @click="daySelectDialog = false"
           />
         </div>
       </q-card>
@@ -317,6 +383,13 @@ $shadows-big: multiple-box-shadow(100);
   z-index: 10;
   filter: brightness(1.1) grayscale(0%); /* Item focado brilha */
   opacity: 1;
+}
+
+.locked {
+  filter: brightness(0.3) grayscale(100%) !important;
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+  pointer-events: none;
 }
 // -----------------------
 
@@ -460,6 +533,37 @@ $shadows-big: multiple-box-shadow(100);
     inset -1px -1px 6px 3px rgba(0, 0, 0, 0.2);
 }
 
+.evidence-buttons {
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+  align-items: center;
+}
+
+.photo-btn-wrapper {
+  cursor: pointer;
+}
+
+.photo-btn {
+  border-radius: 100%;
+  height: 60px;
+  width: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  &.q-btn {
+    padding: 0;
+    transform: none !important;
+
+    &.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+}
+
 .select {
   text-shadow: 2px 2px 0px #000;
   height: 30vh;
@@ -558,5 +662,69 @@ $shadows-big: multiple-box-shadow(100);
   padding: 12px 16px;
   background: rgba(0, 0, 0, 0.3);
   border-top: 1px solid #222;
+}
+
+.day-selection-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+  align-items: center;
+}
+
+.day-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 16px 24px !important;
+  font-size: 14px;
+}
+
+.fancy-day-btn {
+  background: rgba(0,0,0,0.25);
+  transition: transform .15s ease, box-shadow .15s ease, background .2s ease;
+}
+
+.fancy-day-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.35);
+}
+
+.day-btn-content {
+  display: flex;
+  align-items: center;
+}
+
+.pretty-day-dialog {
+  min-width: 300px;
+  max-width: 400px;
+}
+
+.day-card {
+  background-color: $snes-dark;
+  border: 2px solid $snes-light;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: lighten($snes-dark, 5%);
+    border-color: $accent;
+  }
+
+  &.completed {
+    background-color: rgba(76, 175, 80, 0.1);
+    border-color: $positive;
+  }
+}
+
+.day-number {
+  font-size: 1.2rem;
+  color: white;
+  text-shadow: 2px 2px 0 #000;
 }
 </style>

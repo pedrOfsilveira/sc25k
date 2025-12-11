@@ -5,6 +5,10 @@ const props = defineProps({
   img: {
     type: String,
     default: 'logo.webp'
+  },
+  locked: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -37,6 +41,9 @@ const backgroundStyle = computed(() => {
     </div>
      <div class="logo-wrapper">
       <div class="img" :style="backgroundStyle"></div>
+      <div v-if="locked" class="lock-overlay">
+        <q-icon name="lock" size="80px" color="white" />
+      </div>
     </div>
     <div class="cartucho-inset"></div>
   </div>
@@ -185,6 +192,18 @@ const backgroundStyle = computed(() => {
 
   border-radius: 0 0 8px 8px;
   filter: brightness(0.95);
+}
+
+.lock-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
 }
 
 .cartucho-inset {

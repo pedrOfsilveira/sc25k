@@ -181,6 +181,7 @@ const uploadAvatar = async (event) => {
 
 const logout = async () => {
   await supabase.auth.signOut()
+  // local data will be cleared by auth-init boot hook
   router.push('/login')
 }
 </script>

@@ -14,13 +14,25 @@ export const useTreinoStore = defineStore("treino", {
     salvando: false,
     intervalId: null,
     endTime: null,
-    wakeLock: null
+    wakeLock: null,
+    currentWeek: null,
+    currentDay: null,
+    completedDays: {} // { "1": [1, 2, 3], "2": [1] } etc
   }),
 
   getters: {
+    estruturaAtual: (state) => {
+      if (!state.treinoAtivo) return [];
+      const dias = state.treinoAtivo.dias;
+      const dayIndex = Math.max(0, (state.currentDay || 1) - 1);
+      return Array.isArray(dias) && dias[dayIndex] ? dias[dayIndex].estrutura : [];
+    },
+
     passoAtual: (state) => {
-      if (!state.treinoAtivo) return null;
-      return state.treinoAtivo.estrutura[state.passoAtualIndex];
+      const estrutura = (state.treinoAtivo && state.treinoAtivo.dias)
+        ? (state.treinoAtivo.dias[Math.max(0, (state.currentDay || 1) - 1)]?.estrutura || [])
+        : (state.treinoAtivo?.estrutura || []);
+      return estrutura[state.passoAtualIndex] || null;
     },
 
     tempoFormatado: (state) => {
@@ -32,13 +44,18 @@ export const useTreinoStore = defineStore("treino", {
     },
 
     progressoGeral: (state) => {
-      if (!state.treinoAtivo) return 0;
-      const totalPassos = state.treinoAtivo.estrutura.length;
+      const estrutura = (state.treinoAtivo && state.treinoAtivo.dias)
+        ? (state.treinoAtivo.dias[Math.max(0, (state.currentDay || 1) - 1)]?.estrutura || [])
+        : (state.treinoAtivo?.estrutura || []);
+      const totalPassos = estrutura.length || 1;
       return state.passoAtualIndex / totalPassos;
     },
 
     corAtual: (state) => {
-      const passo = state.treinoAtivo?.estrutura[state.passoAtualIndex];
+      const estrutura = (state.treinoAtivo && state.treinoAtivo.dias)
+        ? (state.treinoAtivo.dias[Math.max(0, (state.currentDay || 1) - 1)]?.estrutura || [])
+        : (state.treinoAtivo?.estrutura || []);
+      const passo = estrutura[state.passoAtualIndex];
       if (!passo) return "grey";
       if (passo.tipo === "corrida") return "negative";
       if (passo.tipo === "caminhada") return "primary";
@@ -47,10 +64,140 @@ export const useTreinoStore = defineStore("treino", {
   },
 
   actions: {
+    resetSessionState() {
+      const preservedCompleted = { ...this.completedDays };
+      const preservedWeek = this.currentWeek;
+      this.treinoAtivo = null;
+      this.passoAtualIndex = 0;
+      this.timer = 0;
+      this.estaRodando = false;
+      this.treinoConcluido = false;
+      this.salvando = false;
+      this.intervalId = null;
+      this.endTime = null;
+      this.wakeLock = null;
+      this.currentDay = null;
+      this.currentWeek = preservedWeek;
+      this.completedDays = preservedCompleted;
+    },
+    clearLocalData() {
+      try {
+        localStorage.removeItem('retroRun_completedDays');
+        localStorage.removeItem('retroRun_save');
+      } catch (_) {
+        // ignore
+      }
+      this.completedDays = {};
+      this.currentWeek = null;
+      this.currentDay = null;
+    },
+    async loadCompletedDaysFromDB() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          this.loadCompletedDays();
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('completed_days')
+          .select('week_id, day')
+          .eq('user_id', user.id);
+
+        if (error) {
+          this.loadCompletedDays();
+          return;
+        }
+
+        const aggregated = {};
+        (data || []).forEach(row => {
+          if (!aggregated[row.week_id]) aggregated[row.week_id] = [];
+          if (!aggregated[row.week_id].includes(row.day)) aggregated[row.week_id].push(row.day);
+        });
+        this.completedDays = aggregated;
+        this.saveCompletedDays();
+      } catch (e) {
+        this.loadCompletedDays();
+      }
+    },
+    loadCompletedDays() {
+      const saved = localStorage.getItem('retroRun_completedDays');
+      if (saved) {
+        try {
+          this.completedDays = JSON.parse(saved);
+        } catch (e) {
+          this.completedDays = {};
+        }
+      }
+    },
+
+    saveCompletedDays() {
+      localStorage.setItem('retroRun_completedDays', JSON.stringify(this.completedDays));
+    },
+
+    isWeekCompleted(weekId) {
+      const days = this.completedDays[weekId] || [];
+      return days.length === 3;
+    },
+
+    getDayStatus(weekId, day) {
+      const days = this.completedDays[weekId] || [];
+      return days.includes(day) ? 'completed' : 'available';
+    },
+
+    markDayCompleted(weekId, day) {
+      if (!this.completedDays[weekId]) {
+        this.completedDays[weekId] = [];
+      }
+      if (!this.completedDays[weekId].includes(day)) {
+        this.completedDays[weekId].push(day);
+        this.saveCompletedDays();
+        this.persistCompletedDay(weekId, day);
+        if (this.isWeekCompleted(weekId)) {
+          this.persistCompletedWeek(weekId);
+        }
+      }
+    },
+
+    async persistCompletedDay(weekId, day) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        await supabase
+          .from('completed_days')
+          .upsert({
+            user_id: user.id,
+            week_id: weekId,
+            day: day,
+            completed_at: new Date().toISOString()
+          }, { onConflict: 'user_id,week_id,day' });
+      } catch (e) {
+        // silent fail, stays in localStorage
+      }
+    },
+
+    async persistCompletedWeek(weekId) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        await supabase
+          .from('completed_weeks')
+          .upsert({
+            user_id: user.id,
+            week_id: weekId,
+            completed_at: new Date().toISOString()
+          }, { onConflict: 'user_id,week_id' });
+      } catch (e) {
+        // silent fail
+      }
+    },
+
     salvarEstadoLocal() {
       const estado = {
         treinoId: this.treinoAtivo?.id,
-        treinoConcluido: this.treinoConcluido
+        treinoConcluido: this.treinoConcluido,
+        currentWeek: this.currentWeek,
+        currentDay: this.currentDay
       };
       localStorage.setItem('retroRun_save', JSON.stringify(estado));
     },
@@ -60,15 +207,16 @@ export const useTreinoStore = defineStore("treino", {
     },
 
     verificarCrash() {
+      this.loadCompletedDays();
       const save = localStorage.getItem('retroRun_save');
       if (save) {
         try {
           const dados = JSON.parse(save);
           if (dados.treinoId && dados.treinoConcluido) {
-            this.carregarTreino(dados.treinoId);
+            this.carregarTreino(dados.treinoId, dados.currentDay || 1);
             this.treinoConcluido = true;
             this.timer = 0;
-            this.passoAtualIndex = this.treinoAtivo.estrutura.length - 1;
+            this.passoAtualIndex = this.estruturaAtual.length - 1;
 
             Notify.create({
               message: 'GAME RESTORED! UPLOAD YOUR PHOTO.',
@@ -84,13 +232,16 @@ export const useTreinoStore = defineStore("treino", {
       }
     },
 
-    carregarTreino(id) {
+    carregarTreino(id, day = 1) {
       const treinoSelecionado = treinos.find((t) => t.id === id);
       if (treinoSelecionado) {
         this.treinoAtivo = treinoSelecionado;
+        this.currentWeek = id;
+        this.currentDay = day;
         this.passoAtualIndex = 0;
         this.treinoConcluido = false;
-        this.timer = treinoSelecionado.estrutura[0].tempo;
+        const estrutura = (treinoSelecionado.dias?.[Math.max(0, day-1)]?.estrutura) || [];
+        this.timer = estrutura[0]?.tempo || 0;
         this.estaRodando = false;
         this.endTime = null;
       }
@@ -143,7 +294,8 @@ export const useTreinoStore = defineStore("treino", {
     proximoPasso() {
       clearInterval(this.intervalId);
 
-      if (this.passoAtualIndex < this.treinoAtivo.estrutura.length - 1) {
+      const estrutura = this.estruturaAtual;
+      if (this.passoAtualIndex < estrutura.length - 1) {
         this.tocarSomAlert();
         this.passoAtualIndex++;
 
@@ -163,9 +315,20 @@ export const useTreinoStore = defineStore("treino", {
 
     async cancelarTreino() {
       this.pausarTimer();
-      await this.registrarHistorico('CANCELADO');
+      // If quit in the first cycle (warmup + first run), ignore the run
+      if (this.passoAtualIndex <= 1) {
+        Notify.create({
+          message: 'RUN DISREGARDED (quit too early).',
+          color: 'warning',
+          icon: 'cancel',
+          position: 'top',
+          classes: 'retro-font'
+        });
+      } else {
+        await this.registrarHistorico('CANCELADO');
+      }
       this.limparEstadoLocal();
-      this.$reset();
+      this.resetSessionState();
     },
 
     finalizarTreino() {
@@ -180,13 +343,15 @@ export const useTreinoStore = defineStore("treino", {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const totalPassos = this.treinoAtivo.estrutura.length;
+        const totalPassos = this.estruturaAtual.length;
         const passosFeitos = this.passoAtualIndex + 1;
         const stringProgresso = `${passosFeitos}/${totalPassos}`;
 
         let pontos = 0;
         if (status === 'CONCLUÍDO') {
           pontos = 1000 + Math.floor(Math.random() * 500);
+          // Mark day as completed
+          this.markDayCompleted(this.currentWeek, this.currentDay);
         } else {
           pontos = Math.floor((passosFeitos / totalPassos) * 500);
         }
@@ -194,6 +359,7 @@ export const useTreinoStore = defineStore("treino", {
         const { error } = await supabase.from("historico_treinos").insert({
           user_id: user.id,
           treino_id: this.treinoAtivo.id,
+          treino_day: this.currentDay,
           pontuacao: pontos,
           foto_url: fotoUrl,
           status: status,
@@ -261,7 +427,7 @@ export const useTreinoStore = defineStore("treino", {
         });
 
         this.limparEstadoLocal();
-        this.$reset();
+        this.resetSessionState();
 
       } catch (error) {
         console.error(error);
