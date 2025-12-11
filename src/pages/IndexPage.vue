@@ -109,7 +109,7 @@ const confirmarVitoria = () => {
       <div id="stars3"></div>
     </div>
 
-    <div v-if="!store.treinoAtivo" class="content-wrapper">
+    <div v-if="!store.treinoAtivo" class="content-wrapper-index">
       <div class="select mb q-pa-md street-font flex items-center text-h3 snes-blink text-center">
         SELECT STAGE
       </div>
@@ -134,7 +134,7 @@ const confirmarVitoria = () => {
 
 
 
-    <div v-else class="content-wrapper">
+    <div v-else class="content-wrapper-index">
       <div class="full-width q-mt-md" style="max-width: 600px">
         <q-linear-progress
           reverse
@@ -228,43 +228,43 @@ const confirmarVitoria = () => {
     </div>
 
     <q-dialog v-model="confirmDialog" persistent backdrop-filter="blur(4px)" class="retro-dialog">
-      <q-card class="retro-screen-card text-center q-pa-md" style="min-width: 300px;">
+      <q-card class="confirm-dialog-card">
+        <div class="dialog-card-header justify-center">
+          <q-icon name="warning" color="negative" size="md" class="snes-blink" />
+          <div class="star-font text-negative text-h6">WARNING!</div>
+        </div>
 
-        <q-card-section class="q-pt-md">
-          <q-icon name="warning" color="red" size="md" class="snes-blink" />
-          <div class="text-h6 text-red snes-font q-mt-sm">WARNING!</div>
-
-          <div class="text-white snes-font q-my-md text-subtitle2">
+        <div class="dialog-card-body">
+          <div class="text-white alien-font text-subtitle2">
             DO YOU WANT TO GIVE UP?
-            <br><br>
-            <span class="text-grey-5 text-caption">
-              PROGRESS WILL BE SAVED AS <span class="text-red">INCOMPLETE</span>.
-            </span>
           </div>
-        </q-card-section>
+          <div class="text-grey-5 alien-font q-mt-md" style="font-size: 10px;">
+            PROGRESS WILL BE SAVED AS <span class="text-negative star-font">INCOMPLETE</span>.
+          </div>
+        </div>
 
-        <q-card-actions align="center" class="q-pb-md q-gutter-x-md">
+        <div class="dialog-card-actions justify-center q-gutter-x-md">
           <q-btn
             flat
             label="NO"
             color="green-13"
-            class="snes-font border-btn"
+            class="alien-font"
             @click="retomarTreino"
           />
           <q-btn
             flat
             label="YES"
             color="red-13"
-            class="snes-font border-btn"
+            class="alien-font"
             @click="confirmarCancelamento"
           />
-        </q-card-actions>
+        </div>
       </q-card>
     </q-dialog>
   </q-page>
 </template>
 
-<style lang="scss" scoped>
+<style lang="scss">
 @function multiple-box-shadow($n) {
   $value: "#{random(2000)}px #{random(2000)}px #FFF";
   @for $i from 2 through $n {
@@ -283,7 +283,7 @@ $shadows-big: multiple-box-shadow(100);
   min-height: 100vh;
 }
 
-.content-wrapper {
+.content-wrapper-index {
   position: relative;
   z-index: 1;
   width: 100%;
@@ -522,5 +522,37 @@ $shadows-big: multiple-box-shadow(100);
   box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
   border-radius: 4px;
   position: relative;
+}
+
+// Confirm dialog card styles
+.confirm-dialog-card {
+  background-color: #090a0f;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+  min-width: 300px;
+}
+
+.dialog-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%);
+  border-bottom: 1px solid #222;
+}
+
+.dialog-card-body {
+  padding: 20px 16px;
+  text-align: center;
+}
+
+.dialog-card-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid #222;
 }
 </style>

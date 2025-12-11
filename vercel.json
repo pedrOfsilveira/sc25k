@@ -1,0 +1,11 @@
+{
+  "buildCommand": "quasar build -m pwa",
+  "outputDirectory": "dist/pwa",
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

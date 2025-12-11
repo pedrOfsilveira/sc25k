@@ -150,25 +150,26 @@ const abrirHistorico = async () => {
         maximized
         transition-show="slide-down"
         transition-hide="slide-up"
+        backdrop-filter="blur(4px)"
         @hide="resetTab()"
       >
-        <q-card class="retro-screen-card">
+        <q-card class="memory-dialog-card">
 
-          <q-bar class="retro-header q-pa-md">
-            <q-icon name="save" color="yellow" size="xs" />
-            <div class="text-h6 snes-font text-yellow q-ml-sm snes-blink" style="font-size: 14px">SAVE DATA</div>
+          <q-bar class="memory-dialog-header q-pa-md">
+            <q-icon name="save" color="accent" size="xs" />
+            <div class="text-h6 star-font text-accent q-ml-sm snes-blink" style="font-size: 14px">SAVE DATA</div>
             <q-space />
             <q-btn dense flat text-color="white" icon="close" v-close-popup class="retro-close-btn" />
           </q-bar>
 
-          <q-card-section class="q-px-md full-height scroll">
-            <div v-if="loadingHistorico" class="text-center q-mt-xl snes-blink snes-font text-white" style="font-size: 14px">
+          <q-card-section class="q-px-md q-pb-xl full-height scroll">
+            <div v-if="loadingHistorico" class="text-center q-mt-xl snes-blink alien-font text-white" style="font-size: 14px">
               READING MEMORY CARD...
             </div>
 
             <div v-else-if="historico.length === 0" class="empty-state q-mt-xl">
-              <q-icon name="videogame_asset_off" size="64px" color="grey-7" class="q-mb-md" />
-              <div class="snes-font text-grey-4" style="font-size: 10px; line-height: 20px;">
+              <q-icon name="videogame_asset_off" size="64px" color="grey-6" class="q-mb-md" />
+              <div class="alien-font text-grey-5" style="font-size: 10px; line-height: 20px;">
                 NO DATA FOUND.<br>INSERT COIN & RUN!
               </div>
             </div>
@@ -176,65 +177,58 @@ const abrirHistorico = async () => {
             <template v-else>
               <div class="stats-summary q-mb-md">
                 <div class="stat-item">
-                  <div class="stat-label snes-font">TOTAL RUNS</div>
-                  <div class="stat-value snes-font text-yellow">{{ historico.length }}</div>
+                  <div class="stat-label alien-font">TOTAL RUNS</div>
+                  <div class="stat-value star-font text-accent">{{ historico.length }}</div>
                 </div>
                 <div class="stat-item">
-                  <div class="stat-label snes-font">COMPLETED</div>
-                  <div class="stat-value snes-font text-green">{{ historico.filter(h => h.status !== 'CANCELADO').length }}</div>
+                  <div class="stat-label alien-font">COMPLETED</div>
+                  <div class="stat-value star-font text-green">{{ historico.filter(h => h.status !== 'CANCELADO').length }}</div>
                 </div>
                 <div class="stat-item">
-                  <div class="stat-label snes-font">TOTAL XP</div>
-                  <div class="stat-value snes-font text-warning">{{ historico.reduce((sum, h) => sum + (h.pontuacao || 0), 0) }}</div>
+                  <div class="stat-label alien-font">TOTAL XP</div>
+                  <div class="stat-value star-font text-warning">{{ historico.reduce((sum, h) => sum + (h.pontuacao || 0), 0) }}</div>
                 </div>
               </div>
 
               <q-list dark separator class="retro-list q-mt-md">
-                <q-item v-for="item in historico" :key="item.id" class="retro-score-item q-py-md" clickable>
-                  <q-item-section avatar>
+                <div v-for="item in historico" :key="item.id" class="memory-item-card">
+                  <div class="memory-item-header">
                     <div class="pixel-avatar" :class="item.status === 'CANCELADO' ? 'avatar-failed' : 'avatar-success'">
-                      <q-icon v-if="item.status === 'CANCELADO'" name="close" color="red" />
+                      <q-icon v-if="item.status === 'CANCELADO'" name="close" color="negative" />
                       <img v-else-if="item.foto_url" :src="item.foto_url">
-                      <q-icon v-else name="emoji_events" color="yellow" />
+                      <q-icon v-else name="emoji_events" color="accent" />
                     </div>
-                  </q-item-section>
+                    <div class="memory-item-info">
+                      <div class="star-font text-white memory-title">{{ getNomeTreino(item.treino_id) }}</div>
+                      <div class="alien-font text-grey-5 memory-date">
+                        <q-icon name="access_time" size="10px" class="q-mr-xs" />
+                        {{ new Date(item.created_at).toLocaleDateString() }} · {{ new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }}
+                      </div>
+                    </div>
+                    <div class="score-box">
+                      <div class="score-label alien-font">XP</div>
+                      <div class="score-value star-font">{{ item.pontuacao }}</div>
+                    </div>
+                  </div>
 
-                  <q-item-section>
-                    <q-item-label class="snes-font text-white" style="font-size: 11px; line-height: 1.4;">
-                      {{ getNomeTreino(item.treino_id) }}
-                    </q-item-label>
-
-                    <q-item-label caption class="snes-font text-grey-5" style="font-size: 8px; margin-top: 4px;">
-                      <q-icon name="access_time" size="10px" class="q-mr-xs" />
-                      {{ new Date(item.created_at).toLocaleDateString() }} · {{ new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }}
-                    </q-item-label>
-
-                    <div class="q-mt-xs flex items-center" style="gap: 6px">
+                  <div class="memory-item-body">
+                    <div class="badges-row">
                       <span
-                        class="status-badge snes-font"
+                        class="status-badge alien-font"
                         :class="item.status === 'CANCELADO' ? 'status-failed' : 'status-complete'"
                       >
                         {{ item.status === 'CANCELADO' ? 'FAILED' : 'COMPLETE' }}
                       </span>
-
-                      <span class="cycles-badge snes-font">
+                      <span class="cycles-badge alien-font">
                         {{ item.progresso || 'ALL' }} CYCLES
                       </span>
                     </div>
 
-                    <a v-if="item.foto_url" :href="item.foto_url" target="_blank" class="evidence-link snes-font q-mt-xs" @click.stop>
-                      <q-icon name="photo" size="10px" class="q-mr-xs" />
+                    <a v-if="item.foto_url" :href="item.foto_url" target="_blank" class="evidence-link alien-font" @click.stop>
                       VIEW EVIDENCE
                     </a>
-                  </q-item-section>
-
-                  <q-item-section side top>
-                    <div class="score-box">
-                      <div class="score-label snes-font">XP</div>
-                      <div class="score-value snes-font">{{ item.pontuacao }}</div>
-                    </div>
-                  </q-item-section>
-                </q-item>
+                  </div>
+                </div>
               </q-list>
             </template>
           </q-card-section>
@@ -384,6 +378,21 @@ const abrirHistorico = async () => {
   overflow: hidden;
 }
 
+// Memory dialog card styles
+.memory-dialog-card {
+  background-color: #090a0f !important;
+  border: 2px solid #fff;
+  box-shadow: inset 0 0 50px rgba(0,0,0,0.8), 0 8px 32px rgba(0,0,0,0.9);
+  position: relative;
+  overflow: hidden;
+}
+
+.memory-dialog-header {
+  background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%) !important;
+  border-bottom: 2px solid #fff;
+  padding-top: 20px;
+}
+
 .retro-header {
   background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%) !important;
   border-bottom: 2px solid #fff;
@@ -411,7 +420,7 @@ const abrirHistorico = async () => {
 .stat-item {
   text-align: center;
   .stat-label {
-    font-size: 8px;
+    font-size: 10px;
     color: #888;
     margin-bottom: 4px;
   }
@@ -493,7 +502,7 @@ const abrirHistorico = async () => {
 }
 
 .status-badge {
-  font-size: 7px;
+  font-size: 10px;
   padding: 3px 6px;
   border-radius: 2px;
   font-weight: bold;
@@ -511,7 +520,7 @@ const abrirHistorico = async () => {
 }
 
 .cycles-badge {
-  font-size: 7px;
+  font-size: 10px;
   color: #ffdd55;
   padding: 3px 6px;
   background: rgba(255, 221, 85, 0.1);
@@ -522,16 +531,21 @@ const abrirHistorico = async () => {
 .evidence-link {
   text-decoration: none;
   color: #4fc3f7;
-  font-size: 8px;
+  font-size: 10px;
   display: inline-flex;
   align-items: center;
+  align-self: center;
   transition: all 0.2s;
   margin-top: 4px;
   &:hover {
-    color: yellow;
-    text-shadow: 0 0 8px yellow;
-    transform: translateX(3px);
+    color: #4fc3f7;
+    text-shadow: none;
+    transform: none;
   }
+}
+
+.memory-date {
+  font-size: 8px;
 }
 
 .score-box {
@@ -570,5 +584,48 @@ const abrirHistorico = async () => {
   margin: auto;
   transform: translateY(-25px);
   overflow: hidden;
+}
+
+// Memory item card redesign
+.memory-item-card {
+  background-color: #090a0f;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.memory-item-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #222;
+  padding-bottom: 10px;
+}
+
+.memory-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.memory-title {
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.memory-item-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+}
+
+.badges-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 </style>

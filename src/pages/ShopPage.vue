@@ -27,12 +27,13 @@ onMounted(() => {
 const downloadTicket = () => {
   if (!generatedTicketImg.value || !ticketData.value) return
 
-  const safeName = ticketData.value.titulo.replace(/[^a-z0-9]/gi, '_').toLowerCase()
-  const fileName = `ticket-${safeName}-${ticketData.value.id}.png`
+  const date = new Date()
+  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  const fileName = `ticket-${dateStr}.png`
 
   const link = document.createElement('a')
   link.href = generatedTicketImg.value
-  link.download = fileName // <--- AQUI ESTÁ O SEGREDO
+  link.download = fileName
 
   document.body.appendChild(link)
   link.click()
@@ -108,32 +109,32 @@ const confirmPurchase = async () => {
 
     <div class="content-wrapper q-px-md">
       <div class="text-center q-mb-md">
-        <h2 class="text-h4 street-font text-yellow snes-blink" style="text-shadow: 4px 4px 0 #000; margin-bottom: 10px;">
+        <h2 class="text-h4 star-font text-accent snes-blink" style="text-shadow: 4px 4px 0 #000; margin-bottom: 10px;">
           ITEM SHOP
         </h2>
 
         <div class="xp-wallet q-pa-md q-mb-lg">
           <div class="row justify-between items-center">
-            <span class="snes-font text-grey-5" style="font-size: 10px;">TOTAL EARNED:</span>
-            <span class="snes-font text-white">{{ shopStore.saldoTotal }}</span>
+            <span class="alien-font text-grey-5" style="font-size: 10px;">TOTAL EARNED:</span>
+            <span class="star-font text-white">{{ shopStore.saldoTotal }}</span>
           </div>
           <div class="row justify-between items-center">
-            <span class="snes-font text-grey-5" style="font-size: 10px;">SPENT:</span>
-            <span class="snes-font text-red">-{{ shopStore.totalGasto }}</span>
+            <span class="alien-font text-grey-5" style="font-size: 10px;">SPENT:</span>
+            <span class="star-font text-negative">-{{ shopStore.totalGasto }}</span>
           </div>
-          <q-separator color="grey-7" class="q-my-xs" />
+          <q-separator color="grey-6" class="q-my-xs" />
           <div class="row justify-between items-center">
-            <span class="snes-font text-yellow" style="font-size: 12px;">AVAILABLE:</span>
-            <span class="snes-font text-yellow text-h6">{{ shopStore.saldoDisponivel }} XP</span>
+            <span class="alien-font text-accent" style="font-size: 12px;">AVAILABLE:</span>
+            <span class="star-font text-accent text-h6">{{ shopStore.saldoDisponivel }} XP</span>
           </div>
         </div>
       </div>
 
       <q-tabs
         v-model="tab"
-        class="text-white snes-font q-mb-md"
-        active-color="yellow"
-        indicator-color="yellow"
+        class="text-white alien-font q-mb-md"
+        active-color="accent"
+        indicator-color="accent"
         align="justify"
         dense
       >
@@ -143,13 +144,13 @@ const confirmPurchase = async () => {
 
       <q-tab-panels v-model="tab" animated class="bg-transparent">
         <q-tab-panel name="buy" class="q-px-none">
-          <div v-if="shopStore.loading" class="text-center text-white snes-font snes-blink">
+          <div v-if="shopStore.loading" class="text-center text-white alien-font snes-blink">
             LOADING ITEMS...
           </div>
 
           <div v-else-if="shopStore.ofertasParaMim.length === 0" class="empty-shop q-pa-lg">
-            <q-icon name="remove_shopping_cart" color="grey-8" size="xl" />
-            <div class="text-grey snes-font q-mt-md" style="font-size: 10px">
+            <q-icon name="remove_shopping_cart" color="grey-6" size="xl" />
+            <div class="text-grey alien-font q-mt-md" style="font-size: 10px">
               NO OFFERS RECEIVED.
             </div>
           </div>
@@ -158,120 +159,127 @@ const confirmPurchase = async () => {
             <q-card
               v-for="offer in shopStore.ofertasParaMim"
               :key="offer.id"
-              class="retro-screen-card q-pa-md"
+              class="offer-card"
               :class="{ 'item-sold': offer.comprado }"
             >
-              <div class="row items-center justify-between">
-                <div class="col-auto q-mr-sm">
-                  <div class="mini-avatar">
-                    <img v-if="offer.criador_avatar" :src="offer.criador_avatar" />
-                    <q-icon v-else name="person" color="grey-5" size="sm" />
-                  </div>
+              <!-- Top section: Avatar + Info -->
+              <div class="offer-card-header">
+                <div class="offer-avatar">
+                  <img v-if="offer.criador_avatar" :src="offer.criador_avatar" />
+                  <q-icon v-else name="person" color="grey-6" size="md" />
                 </div>
-                <div class="col q-pa-md">
-                  <div class="text-yellow snes-font text-subtitle2">{{ offer.titulo }}</div>
-                  <div class="text-grey-5 snes-font" style="font-size: 8px; margin-top: 4px;">
-                    FROM: {{ offer.criador_name || 'Unknown User' }}
-                  </div>
+                <div class="offer-seller-info">
+                  <span class="alien-font text-grey-5">FROM</span>
+                  <span class="star-font text-white">{{ offer.criador_name || 'Unknown' }}</span>
                 </div>
-
-                <div class="col-auto text-right">
-                  <div class="snes-font text-white q-mb-sm">{{ offer.preco }} XP</div>
-
-                  <div v-if="offer.comprado" class="q-gutter-y-xs">
-                    <q-btn
-                      flat
-                      size="sm"
-                      color="yellow"
-                      label="VIEW TICKET"
-                      icon="confirmation_number"
-                      class="border-btn snes-font full-width"
-                      @click="viewTicket(offer)"
-                    />
-                    <q-btn
-                      flat
-                      dense
-                      size="sm"
-                      color="red"
-                      icon="delete"
-                      class="border-btn snes-font full-width"
-                      @click="shopStore.deletarOferta(offer.id)"
-                    />
-                  </div>
-
-                  <div v-else class="q-gutter-y-xs">
-                    <q-btn
-                      size="sm"
-                      color="positive"
-                      label="BUY"
-                      class="retro-btn snes-font full-width"
-                      :loading="generatingTicket && currentOfferId === offer.id"
-                      @click="askToBuy(offer)"
-                    />
-                    <q-btn
-                      flat
-                      dense
-                      size="sm"
-                      color="red"
-                      icon="delete"
-                      class="border-btn snes-font full-width"
-                      @click="shopStore.deletarOferta(offer.id)"
-                    />
-                  </div>
+                <div class="offer-price-tag">
+                  <span class="alien-font text-grey-5">PRICE</span>
+                  <span class="star-font text-cyan">{{ offer.preco }} XP</span>
                 </div>
+              </div>
+
+              <!-- Middle section: Item title -->
+              <div class="offer-card-body">
+                <div class="offer-title star-font text-accent">{{ offer.titulo }}</div>
+                <span
+                  v-if="offer.comprado"
+                  class="alien-font status-badge status-complete"
+                >
+                  OWNED
+                </span>
+              </div>
+
+              <!-- Bottom section: Actions -->
+              <div class="offer-card-actions">
+                <q-btn
+                  v-if="offer.comprado"
+                  flat
+                  size="sm"
+                  color="accent"
+                  label="VIEW TICKET"
+                  icon="confirmation_number"
+                  class="border-btn alien-font"
+                  @click="viewTicket(offer)"
+                />
+                <q-btn
+                  v-else
+                  flat
+                  size="sm"
+                  color="info"
+                  label="BUY NOW"
+                  icon="shopping_cart"
+                  class="border-btn alien-font buy-btn"
+                  :loading="generatingTicket && currentOfferId === offer.id"
+                  @click="askToBuy(offer)"
+                />
+                <q-btn
+                  flat
+                  dense
+                  size="sm"
+                  color="negative"
+                  icon="delete"
+                  class="border-btn alien-font delete-btn"
+                  @click="shopStore.deletarOferta(offer.id)"
+                />
               </div>
             </q-card>
           </div>
         </q-tab-panel>
 
         <q-tab-panel name="sell" class="q-px-none">
-          <q-card class="retro-screen-card q-pa-md q-mb-lg">
-            <div class="text-white snes-font q-mb-md text-center" style="font-size: 12px;">
-              CREATE NEW OFFER
+          <q-card class="offer-card q-mb-lg">
+            <div class="offer-card-header create-offer-header">
+              <q-icon name="add_circle" color="accent" size="lg" />
+              <div class="star-font text-white text-h6">CREATE OFFER</div>
             </div>
-            <q-input
-              v-model="novoTitulo"
-              dark
-              outlined
-              dense
-              label="ITEM NAME"
-              class="retro-input q-mb-md snes-font"
-              color="yellow"
-            />
-            <q-input
-              v-model="novoNome"
-              dark
-              outlined
-              dense
-              label="FOR (NAME)"
-              class="retro-input q-mb-md snes-font"
-              color="yellow"
-            />
-            <q-input
-              v-model.number="novoPreco"
-              type="number"
-              dark
-              outlined
-              dense
-              label="PRICE (XP)"
-              class="retro-input q-mb-md snes-font"
-              color="yellow"
-            />
-            <q-btn
-              flat
-              label="LIST ITEM"
-              color="purple-13"
-              class="snes-font border-btn full-width"
-              :disable="!novoTitulo || !novoNome || !novoPreco"
-              @click="criarOferta"
-            />
+            <div class="offer-card-body" style="flex-direction: column; align-items: stretch;">
+              <q-input
+                v-model="novoTitulo"
+                dark
+                outlined
+                dense
+                label="ITEM NAME"
+                class="retro-input q-mb-md alien-font"
+                color="accent"
+              />
+              <q-input
+                v-model="novoNome"
+                dark
+                outlined
+                dense
+                label="FOR (NAME)"
+                class="retro-input q-mb-md alien-font"
+                color="accent"
+              />
+              <q-input
+                v-model.number="novoPreco"
+                type="number"
+                dark
+                outlined
+                dense
+                label="PRICE (XP)"
+                class="retro-input alien-font"
+                color="accent"
+              />
+            </div>
+            <div class="offer-card-actions">
+              <q-btn
+                flat
+                label="LIST ITEM"
+                icon="sell"
+                color="accent"
+                class="alien-font border-btn full-width"
+                :disable="!novoTitulo || !novoNome || !novoPreco"
+                @click="criarOferta"
+              />
+            </div>
           </q-card>
 
-          <div class="text-grey snes-font q-mb-sm" style="font-size: 10px">MY LISTINGS:</div>
+          <div class="text-grey alien-font q-mb-sm" style="font-size: 10px">MY LISTINGS:</div>
 
           <div v-if="shopStore.minhasOfertas.length === 0" class="empty-shop q-pa-lg">
-            <q-icon name="inventory_2" color="grey-8" size="lg" />
-            <div class="text-grey snes-font q-mt-md" style="font-size: 10px">
+            <q-icon name="inventory_2" color="grey-6" size="lg" />
+            <div class="text-grey alien-font q-mt-md" style="font-size: 10px">
               NO LISTINGS YET.
             </div>
           </div>
@@ -280,33 +288,30 @@ const confirmPurchase = async () => {
             <div
               v-for="offer in shopStore.minhasOfertas"
               :key="offer.id"
-              class="retro-screen-card q-pa-sm row items-center justify-between"
-              style="min-height: 50px;"
+              class="listing-card"
+              :class="{ 'listing-sold': offer.comprado }"
             >
-              <div class="col">
-                <div class="text-white snes-font" style="font-size: 10px;">{{ offer.titulo }}</div>
-                <div class="text-grey-6 snes-font" style="font-size: 8px;">To: {{ offer.destinatario_name }}</div>
+              <div class="listing-info">
+                <div class="star-font text-white" style="font-size: 12px;">{{ offer.titulo }}</div>
+                <div class="alien-font text-grey-5 caption-10">TO: {{ offer.destinatario_name }}</div>
               </div>
-              <div class="col-auto text-right">
-                <div class="text-yellow snes-font" style="font-size: 10px;">{{ offer.preco }} XP</div>
+              <div class="listing-status">
+                <div class="star-font text-accent" style="font-size: 12px;">{{ offer.preco }} XP</div>
                 <div class="row items-center q-gutter-x-xs q-mt-xs">
-                  <q-badge
+                  <span
                     v-if="offer.comprado"
-                    color="green"
-                    text-color="black"
-                    class="snes-font"
-                    style="font-size: 8px;"
+                    class="alien-font status-badge status-complete"
                   >
                     SOLD!
-                  </q-badge>
-                  <span v-else class="text-grey-6 snes-font" style="font-size: 8px;">WAITING</span>
+                  </span>
+                  <span v-else class="text-grey-5 alien-font caption-10">WAITING</span>
                   <q-btn
                     flat
                     dense
                     round
                     size="xs"
                     icon="delete"
-                    color="red"
+                    color="negative"
                     @click="shopStore.deletarOferta(offer.id)"
                   />
                 </div>
@@ -318,76 +323,86 @@ const confirmPurchase = async () => {
     </div>
 
     <div style="position: fixed; left: -9999px; top: 0; z-index: -100;">
-      <div ref="ticketRef" class="retro-ticket-container mario-font" v-if="ticketData">
-        <div class="ticket-header star-font street-yellow">
-          RUNNER'S SHOP
-          <span class="ticket-id">#{{ ticketData.id.toString().slice(0, 6) }}</span>
+      <div ref="ticketRef" class="ticket-container" v-if="ticketData">
+        <div class="ticket-header">
+          <span class="star-font text-accent">RUNNER'S SHOP</span>
+          <span class="ticket-id alien-font">#{{ ticketData.id.toString().slice(0, 6) }}</span>
         </div>
+
         <div class="ticket-body">
           <div class="ticket-row">
-            <span class="label ">ITEM:</span>
-            <span class="value street-yellow">{{ ticketData.titulo }}</span>
+            <span class="alien-font text-grey-5">ITEM:</span>
+            <span class="star-font text-accent">{{ ticketData.titulo }}</span>
           </div>
           <div class="ticket-row">
-            <span class="label ">PRICE:</span>
-            <span class="value text-cyan-12">{{ ticketData.preco }} XP</span>
+            <span class="alien-font text-grey-5">PRICE:</span>
+            <span class="star-font text-cyan-12">{{ ticketData.preco }} XP</span>
           </div>
+
           <div class="ticket-dashed-line"></div>
+
           <div class="ticket-row small">
-            <span class="label">SELLER:</span>
-            <span class="value">{{ ticketData.criador_name }}</span>
+            <span class="alien-font">SELLER:</span>
+            <span class="star-font">{{ ticketData.criador_name }}</span>
           </div>
           <div class="ticket-row small">
-            <span class="label">BUYER:</span>
-            <span class="value">{{ ticketData.destinatario_name }}</span>
+            <span class="alien-font">BUYER:</span>
+            <span class="star-font">{{ ticketData.destinatario_name }}</span>
           </div>
         </div>
-        <div class="ticket-footer star-font">
-          VALIDATED: {{ ticketData.comprado_em ? new Date(ticketData.comprado_em).toLocaleDateString() : new Date().toLocaleDateString() }}
-          <div class="stamp alien-font">PAID</div>
+
+        <div class="ticket-footer">
+          <span class="alien-font">VALIDATED: {{ ticketData.comprado_em ? new Date(ticketData.comprado_em).toLocaleDateString() : new Date().toLocaleDateString() }}</span>
+          <div class="ticket-stamp alien-font status-failed">PAID</div>
         </div>
       </div>
     </div>
 
     <q-dialog v-model="showConfirmDialog" persistent backdrop-filter="blur(4px)" class="ticket-dialog">
-      <q-card class="retro-screen-card text-center q-pa-md">
-        <q-card-section>
-          <q-icon name="help_outline" color="yellow" size="md" class="snes-blink" />
-          <div class="text-h6 text-yellow snes-font q-mt-sm">CONFIRM PURCHASE</div>
-          <div class="text-white snes-font q-my-md text-subtitle2" v-if="offerToBuy">
-            BUY <span class="text-yellow">{{ offerToBuy.titulo }}</span>?
-            <br><br>
-            <span class="text-grey-5 text-caption">
-              COST: <span class="text-red">{{ offerToBuy.preco }} XP</span>
-            </span>
+      <q-card class="offer-card dialog-card">
+        <div class="offer-card-header justify-center">
+          <q-icon name="help_outline" color="accent" size="md" class="snes-blink" />
+          <div class="star-font text-accent text-h6">CONFIRM PURCHASE</div>
+        </div>
+        <div class="offer-card-body" style="flex-direction: column; text-align: center;" v-if="offerToBuy">
+          <div class="text-white alien-font text-subtitle2">
+            BUY <span class="text-accent star-font">{{ offerToBuy.titulo }}</span>?
           </div>
-        </q-card-section>
-        <q-card-actions align="center" class="q-pb-md q-gutter-x-md">
-          <q-btn flat label="NO" color="red-13" class="snes-font border-btn" v-close-popup />
-          <q-btn flat label="YES" color="green-13" class="snes-font border-btn" @click="confirmPurchase" />
-        </q-card-actions>
+          <div class="offer-price-tag q-mt-md" style="align-self: center;">
+            <span class="alien-font text-grey-5">COST</span>
+            <span class="star-font text-negative">{{ offerToBuy.preco }} XP</span>
+          </div>
+        </div>
+        <div class="offer-card-actions justify-center q-gutter-x-md">
+          <q-btn flat label="NO" color="red-13" class="alien-font border-btn" v-close-popup />
+          <q-btn flat label="YES" color="green-13" class="alien-font border-btn" @click="confirmPurchase" />
+        </div>
       </q-card>
     </q-dialog>
 
-<q-dialog v-model="showTicketDialog">
-      <q-card class="retro-screen-card  ticket-retro-screen text-center q-pa-md">
-        <div class="text-h4 bttf-font bttf q-mb-xs">TICKET ACQUIRED!</div>
-        <div class="bttf-font q-mb-md" style="font-size: 8px;">
-          SAVE IT AND SEND TO THE SELLER AS PROOF.
+<q-dialog v-model="showTicketDialog" backdrop-filter="blur(4px)">
+      <q-card class="offer-card dialog-card ticket-dialog-card">
+        <div class="offer-card-header" style="flex-direction: column; gap: 4px;">
+          <div class="text-h4 bttf-font bttf">TICKET ACQUIRED!</div>
+          <div class="bttf-font text-grey-5" style="font-size: 10px;">
+            SAVE IT AND SEND TO THE SELLER AS PROOF
+          </div>
         </div>
 
-        <img
-          v-if="generatedTicketImg"
-          :src="generatedTicketImg"
-          style="max-width: 100%;"
-        />
+        <div class="offer-card-body" style="justify-content: center; padding: 12px;">
+          <img
+            v-if="generatedTicketImg"
+            :src="generatedTicketImg"
+            class="ticket-preview-img"
+          />
+        </div>
 
-        <q-card-actions align="center" class="q-mt-md q-gutter-x-md">
+        <div class="offer-card-actions justify-center q-gutter-x-md">
           <q-btn
             flat
             label="CLOSE"
-            color="red"
-            class="snes-font border-btn"
+            color="negative"
+            class="alien-font border-btn"
             v-close-popup
           />
 
@@ -395,11 +410,11 @@ const confirmPurchase = async () => {
             flat
             label="SAVE IMG"
             icon="download"
-            color="cyan-12"
-            class="snes-font border-btn"
+            color="info"
+            class="alien-font border-btn"
             @click="downloadTicket"
           />
-        </q-card-actions>
+        </div>
       </q-card>
     </q-dialog>
   </q-page>
@@ -565,36 +580,36 @@ $shadows-big: multiple-box-shadow(100);
   30%, 100% { opacity: 1; }
 }
 
-.retro-ticket-container {
+// Ticket styles
+.ticket-container {
   width: 300px;
   background-color: #090a0f;
   border: 2px solid #fff;
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 16px;
   color: #fff;
-  box-shadow: 5px 5px 0px #000;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
   position: relative;
   overflow: hidden;
 }
 
 .ticket-header {
-  text-align: center;
-  font-size: 14px;
-  border-bottom: 2px solid #fff;
-  padding-bottom: 8px;
-  margin-bottom: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: 14px;
+  border-bottom: 2px solid #fff;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .ticket-id {
   font-size: 10px;
-  color: #aaa;
+  color: #666;
+  letter-spacing: 1px;
 }
 
 .ticket-body {
-  font-family: 'star';
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -603,49 +618,49 @@ $shadows-big: multiple-box-shadow(100);
 .ticket-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: 12px;
 
   &.small {
-    font-size: 9px;
+    font-size: 10px;
     color: #ccc;
   }
 }
 
 .ticket-dashed-line {
-  border-bottom: 2px dashed #555;
-  margin: 8px 0;
+  border-bottom: 2px dashed #444;
+  margin: 10px 0;
 }
 
 .ticket-footer {
   margin-top: 16px;
   border-top: 2px solid #fff;
-  padding-top: 8px;
-  text-align: center;
-  font-size: 9px;
-  color: #888;
+  padding-top: 10px;
+  font-size: 10px;
+  color: #666;
   position: relative;
 }
 
-.stamp {
+.ticket-stamp {
   position: absolute;
-  bottom: 3px;
-  right: 5px;
-  border: 3px solid red;
-  color: red;
-  padding: 2px 8px;
+  bottom: 0;
+  right: 0;
+  border: 3px solid #f44336;
+  color: #f44336;
+  padding: 3px 10px;
   font-size: 14px;
   font-weight: bold;
-  transform: rotate(-15deg);
-  opacity: 0.8;
-  text-shadow: 1px 1px 0 #000;
+  transform: rotate(-12deg);
+  letter-spacing: 2px;
   border-radius: 4px;
+  background: rgba(244, 67, 54, 0.1);
 }
 
 .mini-avatar {
-  width: 40px;
-  height: 40px;
+  width: 80px;
+  height: 80px;
   border: 2px solid #fff;
-  border-radius: 4px;
+  border-radius: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
@@ -657,6 +672,197 @@ $shadows-big: multiple-box-shadow(100);
     height: 100%;
     object-fit: cover;
   }
+}
+
+// New offer card styles
+.offer-card {
+  background-color: #090a0f;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+
+  &.item-sold {
+    border-color: #555;
+    opacity: 0.8;
+  }
+}
+
+.offer-card-header {
+  display: flex;
+  text-align: center;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%);
+  border-bottom: 1px solid #222;
+
+  &.create-offer-header {
+    justify-content: center;
+    padding: 20px 12px;
+    gap: 10px;
+  }
+}
+
+.offer-avatar {
+  width: 48px;
+  height: 48px;
+  border: 2px solid #fff;
+
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.offer-seller-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+
+  span:first-child {
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+
+  span:last-child {
+    font-size: 12px;
+  }
+}
+
+.offer-price-tag {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 8px 12px;
+  background: rgba(0, 255, 255, 0.05);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+
+
+  span:first-child {
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+
+  span:last-child {
+    font-size: 16px;
+    font-weight: bold;
+  }
+}
+
+.offer-card-body {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 60px;
+}
+
+.offer-title {
+  font-size: 18px;
+  line-height: 1.3;
+  word-wrap: break-word;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.owned-badge {
+  font-size: 10px;
+  padding: 4px 8px;
+  flex-shrink: 0;
+  border-radius: 0;
+}
+
+.status-badge {
+  font-size: 10px;
+  padding: 3px 6px;
+  border-radius: 2px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+.status-complete {
+  background: rgba(85, 255, 85, 0.2);
+  color: #55ff55;
+  border: 1px solid #55ff55;
+}
+.status-failed {
+  background: rgba(255, 85, 85, 0.2);
+  color: #ff5555;
+  border: 1px solid #ff5555;
+}
+
+.offer-card-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid #222;
+}
+
+.buy-btn {
+  flex: 1;
+}
+
+.caption-10 {
+  font-size: 10px;
+}
+
+.delete-btn {
+  flex-shrink: 0;
+}
+
+// Dialog card styles
+.dialog-card {
+  min-width: 300px;
+  max-width: 90vw;
+}
+
+.ticket-dialog-card {
+  max-width: 400px;
+}
+
+.ticket-preview-img {
+  max-width: 100%;
+}
+
+// Listing card styles
+.listing-card {
+  background-color: #090a0f;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+
+  &.listing-sold {
+    border-color: #4caf50;
+    background: linear-gradient(90deg, rgba(76, 175, 80, 0.1) 0%, transparent 100%);
+  }
+}
+
+.listing-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.listing-status {
+  text-align: right;
+  flex-shrink: 0;
 }
 
 </style>

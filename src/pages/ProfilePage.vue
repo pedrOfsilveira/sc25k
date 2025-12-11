@@ -195,49 +195,47 @@ const logout = async () => {
 
     <div class="content-wrapper q-px-md">
       <div class="text-center q-mb-md">
-        <h2 class="text-h4 street-font snes-blink" style="text-shadow: 4px 4px 0 #000; margin-bottom: 10px;">
+        <h2 class="text-h4 star-font text-accent snes-blink" style="text-shadow: 4px 4px 0 #000; margin-bottom: 10px;">
           PROFILE
         </h2>
       </div>
 
-      <div v-if="loading" class="text-center text-white snes-font snes-blink q-mt-xl">
+      <div v-if="loading" class="text-center text-white alien-font snes-blink q-mt-xl">
         LOADING DATA...
       </div>
 
       <template v-else>
         <!-- User Info Card -->
-        <q-card class="retro-screen-card q-pa-md q-mb-md">
-          <div class="row items-center q-mb-md">
-            <div class="col-auto q-mr-md">
-              <div class="profile-avatar-wrapper">
-                <div class="profile-avatar">
-                  <img v-if="avatarUrl" :src="avatarUrl" class="avatar-img" />
-                  <q-icon v-else name="person" color="yellow" size="48px" />
-                </div>
-                <label for="avatar-upload" class="avatar-upload-btn">
-                  <q-icon name="edit" color="black" size="xs" />
-                  <input
-                    id="avatar-upload"
-                    type="file"
-                    accept="image/*"
-                    @change="uploadAvatar"
-                    style="display: none;"
-                  />
-                </label>
-                <q-spinner v-if="uploadingAvatar" color="yellow" size="sm" class="avatar-spinner" />
+        <q-card class="profile-card q-mb-md">
+          <div class="profile-card-header">
+            <div class="profile-avatar-wrapper">
+              <div class="profile-avatar">
+                <img v-if="avatarUrl" :src="avatarUrl" class="avatar-img" />
+                <q-icon v-else name="person" color="accent" size="48px" />
               </div>
+              <label for="avatar-upload" class="avatar-upload-btn">
+                <q-icon name="edit" color="black" size="xs" />
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/*"
+                  @change="uploadAvatar"
+                  style="display: none;"
+                />
+              </label>
+              <q-spinner v-if="uploadingAvatar" color="accent" size="sm" class="avatar-spinner" />
             </div>
-            <div class="col">
-              <div v-if="!editingName" class="row items-center">
-                <div class="text-h6 text-yellow snes-font">{{ name }}</div>
+            <div class="profile-info">
+              <span class="alien-font text-grey-5">RUNNER</span>
+              <div v-if="!editingName" class="row items-center no-wrap">
+                <span class="star-font text-accent user-name">{{ name }}</span>
                 <q-btn
                   flat
                   dense
-                  round
                   icon="edit"
-                  color="yellow"
+                  color="accent"
                   size="sm"
-                  class="q-ml-sm edit-name-btn"
+                  class="edit-name-btn border-btn"
                   @click="startEditingName"
                 />
               </div>
@@ -247,8 +245,8 @@ const logout = async () => {
                   dark
                   outlined
                   dense
-                  class="retro-input snes-font name-input"
-                  color="yellow"
+                  class="retro-input alien-font name-input"
+                  color="warning"
                   placeholder="Enter new name"
                   @keyup.enter="updateName"
                   @keyup.esc="editingName = false"
@@ -258,7 +256,7 @@ const logout = async () => {
                     flat
                     dense
                     icon="check"
-                    color="green"
+                    color="positive"
                     class="border-btn confirm-btn"
                     @click="updateName"
                   />
@@ -266,86 +264,88 @@ const logout = async () => {
                     flat
                     dense
                     icon="close"
-                    color="red"
+                    color="negative"
                     class="border-btn cancel-btn"
                     @click="editingName = false"
                   />
                 </div>
               </div>
-              <div class="text-grey-5 snes-font" style="font-size: 10px; margin-top: 4px;">
-                {{ email }}
-              </div>
+            </div>
+          </div>
+          <div class="profile-card-body">
+            <div class="email-row">
+              <span class="alien-font text-grey-5">EMAIL</span>
+              <span class="star-font text-white">{{ email }}</span>
             </div>
           </div>
         </q-card>
 
         <!-- Stats Grid -->
+        <div class="text-grey alien-font q-mb-sm" style="font-size: 10px">STATS:</div>
         <div class="stats-grid q-mb-md">
-          <div class="stat-card retro-screen-card q-pa-md">
+          <div class="stat-card q-pa-md">
             <div class="stat-icon">
               <q-icon name="directions_run" color="cyan" size="32px" />
             </div>
-            <div class="stat-value text-cyan snes-font">{{ stats.totalRuns }}</div>
-            <div class="stat-label text-grey-5 snes-font">TOTAL RUNS</div>
+            <div class="stat-value star-font text-cyan">{{ stats.totalRuns }}</div>
+            <div class="stat-label alien-font text-grey-5">TOTAL RUNS</div>
           </div>
 
-          <div class="stat-card retro-screen-card q-pa-md">
+          <div class="stat-card q-pa-md">
             <div class="stat-icon">
               <q-icon name="check_circle" color="green" size="32px" />
             </div>
-            <div class="stat-value text-green snes-font">{{ stats.completedRuns }}</div>
-            <div class="stat-label text-grey-5 snes-font">COMPLETED</div>
+            <div class="stat-value star-font text-green">{{ stats.completedRuns }}</div>
+            <div class="stat-label alien-font text-grey-5">COMPLETED</div>
           </div>
 
-          <div class="stat-card retro-screen-card q-pa-md">
+          <div class="stat-card q-pa-md">
             <div class="stat-icon">
-              <q-icon name="stars" color="yellow" size="32px" />
+              <q-icon name="stars" color="accent" size="32px" />
             </div>
-            <div class="stat-value text-yellow snes-font">{{ stats.totalXP }}</div>
-            <div class="stat-label text-grey-5 snes-font">TOTAL XP</div>
+            <div class="stat-value star-font text-accent">{{ stats.totalXP }}</div>
+            <div class="stat-label alien-font text-grey-5">TOTAL XP</div>
           </div>
 
-          <div class="stat-card retro-screen-card q-pa-md">
+          <div class="stat-card q-pa-md">
             <div class="stat-icon">
               <q-icon name="shopping_bag" color="purple" size="32px" />
             </div>
-            <div class="stat-value text-purple snes-font">{{ stats.itemsCreated }}</div>
-            <div class="stat-label text-grey-5 snes-font">ITEMS LISTED</div>
+            <div class="stat-value star-font text-purple">{{ stats.itemsCreated }}</div>
+            <div class="stat-label alien-font text-grey-5">ITEMS LISTED</div>
           </div>
 
-          <div class="stat-card retro-screen-card q-pa-md">
+          <div class="stat-card q-pa-md">
             <div class="stat-icon">
               <q-icon name="shopping_cart" color="orange" size="32px" />
             </div>
-            <div class="stat-value text-orange snes-font">{{ stats.itemsBought }}</div>
-            <div class="stat-label text-grey-5 snes-font">ITEMS SOLD</div>
+            <div class="stat-value star-font text-orange">{{ stats.itemsBought }}</div>
+            <div class="stat-label alien-font text-grey-5">ITEMS SOLD</div>
           </div>
 
-          <div class="stat-card retro-screen-card q-pa-md">
+          <div class="stat-card q-pa-md">
             <div class="stat-icon">
               <q-icon name="percent" color="warning" size="32px" />
             </div>
-            <div class="stat-value text-warning snes-font">
+            <div class="stat-value star-font text-warning">
               {{ stats.totalRuns > 0 ? Math.round((stats.completedRuns / stats.totalRuns) * 100) : 0 }}%
             </div>
-            <div class="stat-label text-grey-5 snes-font">SUCCESS RATE</div>
+            <div class="stat-label alien-font text-grey-5">SUCCESS RATE</div>
           </div>
         </div>
 
         <!-- Actions -->
-        <q-card class="retro-screen-card q-pa-md">
-          <div class="text-white snes-font q-mb-md text-center" style="font-size: 12px;">
-            ACTIONS
+        <q-card class="action-card">
+          <div class="action-card-body">
+            <q-btn
+              flat
+              label="LOGOUT"
+              icon="logout"
+              color="negative"
+              class="alien-font border-btn full-width"
+              @click="logout"
+            />
           </div>
-
-          <q-btn
-            flat
-            label="LOGOUT"
-            icon="logout"
-            color="red"
-            class="snes-font border-btn full-width"
-            @click="logout"
-          />
         </q-card>
       </template>
     </div>
@@ -455,15 +455,108 @@ $shadows-big: multiple-box-shadow(100);
   border-radius: 4px;
 }
 
+// Profile card styles
+.profile-card {
+  background-color: #090a0f;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+}
+
+.profile-card-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%);
+  border-bottom: 1px solid #222;
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+
+  > span:first-child {
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+}
+
+.profile-card-body {
+  padding: 16px;
+}
+
+.email-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  span:first-child {
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+
+  span:last-child {
+    font-size: 12px;
+  }
+}
+
+// Stat card styles
+.stat-card {
+  background-color: #090a0f;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  padding: 10px;
+}
+
+// Action card styles
+.action-card {
+  background-color: #090a0f;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+}
+
+.action-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%);
+  border-bottom: 1px solid #222;
+
+  span {
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+}
+
+.action-card-body {
+  padding: 12px;
+}
+
 .profile-avatar-wrapper {
   position: relative;
+  flex-shrink: 0;
 }
 
 .profile-avatar {
-  width: 80px;
-  height: 80px;
+  width: 72px;
+  height: 72px;
   border: 2px solid #fff;
-  border-radius: 4px;
+  border-radius: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
@@ -481,8 +574,8 @@ $shadows-big: multiple-box-shadow(100);
   position: absolute;
   bottom: -4px;
   right: -4px;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   background-color: #fff;
   border: 2px solid #000;
   border-radius: 50%;
@@ -494,6 +587,10 @@ $shadows-big: multiple-box-shadow(100);
 
   &:hover {
     transform: scale(1.1);
+  }
+
+  .q-icon {
+    font-size: 12px;
   }
 }
 
@@ -507,50 +604,58 @@ $shadows-big: multiple-box-shadow(100);
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.stat-card {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 120px;
+  gap: 8px;
 }
 
 .stat-icon {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .stat-value {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: bold;
   line-height: 1;
   margin-bottom: 4px;
 }
 
 .stat-label {
-  font-size: 9px;
+  font-size: 10px;
   text-transform: uppercase;
 }
 
 :deep(.retro-input .q-field__control) {
   border-radius: 0 !important;
-  border: 2px solid #555;
+  border: 2px solid #fff;
   background-color: rgba(0, 0, 0, 0.5);
 }
 
 :deep(.retro-input .q-field__native) {
   color: #fff;
+  font-size: 14px;
+}
+
+:deep(.retro-input.q-field--outlined .q-field__control:before) {
+  border: none;
+}
+
+:deep(.retro-input.q-field--outlined.q-field--focused .q-field__control) {
+  border-color: #ffd700;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+}
+
+.user-name {
+  font-size: 18px;
+  margin-right: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .edit-name-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
-  max-width: 250px;
 }
 
 .name-input {
@@ -559,28 +664,30 @@ $shadows-big: multiple-box-shadow(100);
 
 .edit-buttons {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .edit-name-btn {
-  border: 2px solid transparent;
   transition: all 0.2s;
-  
+  padding: 4px;
+  min-width: 32px;
+  margin-left: 4px;
+
   &:hover {
-    border-color: currentColor;
-    background-color: rgba(255, 255, 0, 0.1);
+    background-color: rgba(255, 215, 0, 0.2);
+    transform: scale(1.05);
   }
 }
 
 .confirm-btn,
 .cancel-btn {
   flex: 1;
-  padding: 8px 16px;
-  font-size: 12px;
-  
+  padding: 8px 12px;
+  font-size: 11px;
+
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
   }
 }
 

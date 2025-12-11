@@ -12,24 +12,28 @@
 // to match your app's branding.
 // Tip: Use the "Theme Builder" on Quasar's documentation website.
 
-$primary: #C9CACE;
-$secondary: #12121e;
-$accent: #d3ad31;
-$dark: #1d1d1d;
-$dark-page: #121212;
+// Core brand palette (unified)
+$primary: #C9CACE; // light grey accents
+$secondary: #12121e; // deep space background
+$accent: #FFD54F; // unified yellow accent
+$dark: #0A0B10; // app background
+$dark-page: #090a0f; // page background
 
-$positive: #14875a;
-$negative: #bb192b;
-$info: #31ccec;
-$warning: #f2c037;
+// Status colors
+$positive: #4CAF50; // unified green
+$negative: #F44336; // unified red
+$info: #00BCD4; // unified cyan
+$warning: #FFC107; // unified amber
 
-$retro-bg: #1a1a2d;
-$retro-primary: #cd3e33;
-$retro-secondary: #3e6ec1;
-$retro-accent: #f8d928;
-$retro-text: #ffffff;
+// Retro theme references (aligned to core)
+$retro-bg: #0b0d14;
+$retro-primary: #F44336; // uses unified red
+$retro-secondary: #3E6EC1;
+$retro-accent: #FFD54F; // uses unified yellow
+$retro-text: #FFFFFF;
 
-$snes-light: #c9cace;
+// Legacy SNES palette (mapped to unified)
+$snes-light: #C9CACE;
 $snes-dark: #81868a;
 $snes-darker: #5A5B60;
 $snes-blue: #1454b4;
