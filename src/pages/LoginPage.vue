@@ -97,7 +97,7 @@ const handleAuth = async (action) => {
         </div>
       </div>
       <div class="logo-wrapper">
-        <q-img src="/src/assets/logo.webp"></q-img>
+        <q-img src="src/assets/logo.webp"></q-img>
       </div>
       <div class="q-input-wrapper">
         <q-input

@@ -9,7 +9,7 @@ const props = defineProps({
 });
 
 const backgroundStyle = computed(() => ({
-  backgroundImage: `url('/src/assets/${props.img}')`
+  backgroundImage: `url('src/assets/${props.img}')`
 }));
 </script>
 
