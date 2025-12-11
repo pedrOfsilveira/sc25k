@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { supabase } from 'boot/supabase'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { useShopStore } from 'stores/shopStore'
 import logoImg from 'src/assets/logo.webp'
 
 const email = ref('')
@@ -12,6 +13,7 @@ const loading = ref(false)
 const isLogin = ref(true) // Controla se estamos a fazer login ou cadastro
 const router = useRouter()
 const $q = useQuasar()
+const shopStore = useShopStore()
 
 const handleAuth = async (action) => {
   loading.value = true
@@ -36,6 +38,16 @@ const handleAuth = async (action) => {
         }
       })
       if (error) throw error
+
+      // Create profile entry for the new user
+      if (data.user) {
+        console.log('New user registered:', { id: data.user.id, name: name.value });
+        const profileResult = await shopStore.createUserProfile(data.user.id, name.value)
+        if (!profileResult) {
+          console.warn('Failed to create profile, but continuing with registration');
+        }
+      }
+
       $q.notify({ type: 'positive', message: 'User created!' })
       isLogin.value = true // Volta para a tela de login
       name.value = ''

@@ -23,7 +23,7 @@ export const useShopStore = defineStore('shop', {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const userName = user.user_metadata?.name || user.email;
+        const userName = (user.user_metadata?.name || user.email).toLowerCase();
 
         const { data: historico, error: erroHist } = await supabase
           .from('historico_treinos')
@@ -34,14 +34,34 @@ export const useShopStore = defineStore('shop', {
 
         this.saldoTotal = historico?.reduce((sum, item) => sum + (item.pontuacao || 0), 0) || 0;
 
-        const { data: ofertasRecebidas, error: erroRecebidas } = await supabase
+        // Try exact match first, then case-insensitive
+        let ofertasRecebidas;
+        let erroRecebidas;
+
+        const { data: exactMatch, error: errorExact } = await supabase
           .from('loja_ofertas')
           .select('*')
-          .ilike('destinatario_name', userName)
+          .eq('destinatario_name', userName)
           .order('comprado', { ascending: true })
           .order('created_at', { ascending: false });
 
+        if (exactMatch && exactMatch.length > 0) {
+          ofertasRecebidas = exactMatch;
+          erroRecebidas = null;
+        } else {
+          // Fall back to case-insensitive search
+          const { data: caseInsensitive, error: errorCI } = await supabase
+            .from('loja_ofertas')
+            .select('*')
+            .ilike('destinatario_name', userName)
+            .order('comprado', { ascending: true })
+            .order('created_at', { ascending: false });
+          ofertasRecebidas = caseInsensitive;
+          erroRecebidas = errorCI;
+        }
+
         if (erroRecebidas) throw erroRecebidas;
+        console.log('Offers for user:', { userName, count: ofertasRecebidas?.length || 0, offers: ofertasRecebidas });
         this.ofertasParaMim = ofertasRecebidas || [];
 
         this.totalGasto = this.ofertasParaMim
@@ -68,13 +88,34 @@ export const useShopStore = defineStore('shop', {
     async criarOferta(nomeDestino, titulo, preco) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        const userName = user.user_metadata?.name || user.email;
+        const userName = (user.user_metadata?.name || user.email).toLowerCase();
         const avatarUrl = user.user_metadata?.avatar_url || null;
 
+        // Validate recipient exists by name (case-insensitive) in profiles table
+        const cleanName = (nomeDestino || '').trim().toLowerCase();
+        if (!cleanName) {
+          Notify.create({ message: 'Recipient name is required', color: 'warning' });
+          return false;
+        }
+
+        console.log('Looking for user with name:', cleanName);
+        const recipient = await this.buscarUsuarioPorNome(cleanName);
+        if (!recipient) {
+          console.log('Recipient not found:', cleanName);
+          Notify.create({
+            message: `No user found with name: ${cleanName}`,
+            color: 'negative',
+            icon: 'warning',
+            position: 'top'
+          });
+          return false;
+        }
+
+        console.log('Recipient found:', recipient);
         const offerData = {
           criador_id: user.id,
           criador_name: userName,
-          destinatario_name: nomeDestino.trim(),
+          destinatario_name: cleanName,
           titulo: titulo,
           preco: preco
         };
@@ -186,13 +227,71 @@ export const useShopStore = defineStore('shop', {
       }
     },
 
+    async getAllProfiles() {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, name, avatar_url');
+
+        if (error) throw error;
+        console.log('All profiles in DB:', data);
+        return data || [];
+      } catch (error) {
+        console.error('Error fetching all profiles:', error);
+        return [];
+      }
+    },
+
     async buscarUsuarioPorNome(nome) {
       try {
-        // This requires a user_profiles table or similar
-        // For now, we'll just return the name since we're using metadata
-        return { name: nome, avatar_url: '' };
+        const nameLower = (nome || '').toLowerCase();
+        // Exact match on lowercase name
+        const { data: exactMatch, error: error1 } = await supabase
+          .from('profiles')
+          .select('id, name, avatar_url')
+          .eq('name', nameLower)
+          .limit(1);
+
+        if (!error1 && Array.isArray(exactMatch) && exactMatch.length > 0) {
+          console.log('Found exact match:', exactMatch[0]);
+          return exactMatch[0];
+        }
+
+        console.log('No user found with name:', nameLower);
+        return null;
       } catch (error) {
         console.error('Error searching user:', error);
+        return null;
+      }
+    },
+
+    async createUserProfile(userId, name, avatarUrl = null) {
+      try {
+        const nameLower = (name || '').toLowerCase();
+        console.log('Creating profile for user:', { userId, name: nameLower, avatarUrl });
+        const { data, error } = await supabase
+          .from('profiles')
+          .upsert(
+            {
+              id: userId,
+              name: nameLower,
+              avatar_url: avatarUrl,
+              updated_at: new Date().toISOString()
+            },
+            { onConflict: 'id' }
+          )
+          .select();
+
+        if (error) throw error;
+        console.log('Profile created successfully:', data);
+        return data;
+      } catch (error) {
+        console.error('Error creating user profile:', error);
+        Notify.create({
+          message: 'Error creating profile: ' + error.message,
+          color: 'negative',
+          timeout: 5000
+        });
         return null;
       }
     }
