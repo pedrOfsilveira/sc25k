@@ -4,6 +4,10 @@ import { useTreinoStore } from "stores/treinoStore";
 import { treinos } from "src/data/treinos.js";
 import { supabase } from "boot/supabase";
 import Cartucho from "src/components/Cartucho.vue";
+import warmupGif from 'src/assets/warmup.gif';
+import cooldownGif from 'src/assets/cooldown.gif';
+import runGif from 'src/assets/run.gif';
+import eskeletoGif from 'src/assets/eskeleto.gif';
 
 const store = useTreinoStore();
 const listaTreinos = treinos;
@@ -188,10 +192,10 @@ const confirmarVitoria = () => {
         </div>
 
         <div v-else class="text-center">
-          <q-img v-if="store.passoAtual.tipo === 'aquecimento'" src="src/assets/warmup.gif" width="60px" />
-          <q-img v-if="store.passoAtual.tipo === 'arrefecimento'" src="src/assets/cooldown.gif" width="60px" />
-          <q-img v-if="store.passoAtual.tipo === 'corrida'" src="src/assets/run.gif" width="140px" />
-          <q-img v-if="store.passoAtual.tipo === 'caminhada'" src="src/assets/eskeleto.gif" width="60px" />
+          <q-img v-if="store.passoAtual.tipo === 'aquecimento'" :src="warmupGif" width="60px" />
+          <q-img v-if="store.passoAtual.tipo === 'arrefecimento'" :src="cooldownGif" width="60px" />
+          <q-img v-if="store.passoAtual.tipo === 'corrida'" :src="runGif" width="140px" />
+          <q-img v-if="store.passoAtual.tipo === 'caminhada'" :src="eskeletoGif" width="60px" />
 
           <div class="text-h1 street-font text-white" style="font-size: 4rem; text-shadow: 4px 4px 0 #000">
             {{ store.tempoFormatado }}

@@ -8,9 +8,12 @@ const props = defineProps({
   }
 });
 
-const backgroundStyle = computed(() => ({
-  backgroundImage: `url('src/assets/${props.img}')`
-}));
+const backgroundStyle = computed(() => {
+  const imgUrl = new URL(`../assets/${props.img}`, import.meta.url).href;
+  return {
+    backgroundImage: `url('${imgUrl}')`
+  };
+});
 </script>
 
 <template>
