@@ -28,12 +28,37 @@ const handleAuth = async (action) => {
       router.push('/') // Manda o user para a Home se der certo
     } else {
       // --- LÓGICA DE CRIAR CONTA ---
+      const desired = (name.value || '').trim()
+      if (!desired) {
+        $q.notify({ type: 'warning', message: 'Please enter a name' })
+        loading.value = false
+        return
+      }
+      // Check if name is already taken (case-insensitive via lowercase storage)
+      const desiredLower = desired.toLowerCase()
+      const { data: existing, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('name', desiredLower)
+        .limit(1)
+
+      if (checkError) {
+        $q.notify({ type: 'negative', message: checkError.message })
+        loading.value = false
+        return
+      }
+      if (Array.isArray(existing) && existing.length > 0) {
+        $q.notify({ type: 'warning', message: 'That name is already taken' })
+        loading.value = false
+        return
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email: email.value,
         password: password.value,
         options: {
           data: {
-            name: name.value
+            name: desired
           }
         }
       })
@@ -41,8 +66,8 @@ const handleAuth = async (action) => {
 
       // Create profile entry for the new user
       if (data.user) {
-        console.log('New user registered:', { id: data.user.id, name: name.value });
-        const profileResult = await shopStore.createUserProfile(data.user.id, name.value)
+        console.log('New user registered:', { id: data.user.id, name: desired });
+        const profileResult = await shopStore.createUserProfile(data.user.id, desired)
         if (!profileResult) {
           console.warn('Failed to create profile, but continuing with registration');
         }

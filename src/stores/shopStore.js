@@ -269,6 +269,25 @@ export const useShopStore = defineStore('shop', {
       try {
         const nameLower = (name || '').toLowerCase();
         console.log('Creating profile for user:', { userId, name: nameLower, avatarUrl });
+        // Enforce unique names (case-insensitive via lowercase storage)
+        const { data: existing, error: checkError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('name', nameLower)
+          .neq('id', userId)
+          .limit(1);
+
+        if (checkError) throw checkError;
+        if (Array.isArray(existing) && existing.length > 0) {
+          Notify.create({
+            message: 'Name already in use. Choose another.',
+            color: 'warning',
+            position: 'top',
+            icon: 'warning'
+          });
+          return null;
+        }
+
         const { data, error } = await supabase
           .from('profiles')
           .upsert(

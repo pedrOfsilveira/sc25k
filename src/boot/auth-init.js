@@ -1,9 +1,11 @@
 import { boot } from 'quasar/wrappers';
 import { supabase } from 'boot/supabase';
 import { useTreinoStore } from 'stores/treinoStore';
+import { useShopStore } from 'stores/shopStore';
 
 export default boot(() => {
   const store = useTreinoStore();
+  const shopStore = useShopStore();
 
   // Initial load once app boots (will fallback if no user)
   store.loadCompletedDaysFromDB();
@@ -17,9 +19,8 @@ export default boot(() => {
       const name = u.user_metadata?.name || u.email;
       const avatar_url = u.user_metadata?.avatar_url || null;
       try {
-        await supabase
-          .from('profiles')
-          .upsert({ id: u.id, name, avatar_url, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+        // Use store method to enforce uniqueness and lowercase storage
+        await shopStore.createUserProfile(u.id, name, avatar_url);
       } catch (_) {}
 
       store.loadCompletedDaysFromDB();
