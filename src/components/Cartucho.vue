@@ -1,6 +1,10 @@
 <script setup>
 import { computed } from 'vue';
 
+// Preload available week images and expose their URLs
+// Keys will look like '../assets/weeks/week1.png'
+const weekImages = import.meta.glob('../assets/weeks/*', { eager: true, as: 'url' });
+
 const props = defineProps({
   img: {
     type: String,
@@ -9,15 +13,36 @@ const props = defineProps({
   locked: {
     type: Boolean,
     default: false
+  },
+  treino: {
+    type: Object,
+    default: null
   }
 });
 
-const backgroundStyle = computed(() => {
-  const imgUrl = new URL(`../assets/${props.img}`, import.meta.url).href;
-  return {
-    backgroundImage: `url('${imgUrl}')`
-  };
+// Resolve final image: explicit `img` prop > week image by id > fallback
+const resolvedImgUrl = computed(() => {
+  // If a specific image was provided, use it
+  if (props.img && props.img !== 'logo.webp') {
+    return new URL(`../assets/${props.img}`, import.meta.url).href;
+  }
+
+  // Try to map by week id from `treino`
+  const id = props.treino?.id;
+  if (id != null) {
+    const key = `../assets/weeks/week${id}.png`;
+    if (weekImages[key]) {
+      return weekImages[key];
+    }
+  }
+
+  // Fallback to logo
+  return new URL(`../assets/logo.webp`, import.meta.url).href;
 });
+
+const backgroundStyle = computed(() => ({
+  backgroundImage: `url('${resolvedImgUrl.value}')`
+}));
 </script>
 
 <template>
@@ -177,6 +202,9 @@ const backgroundStyle = computed(() => {
     inset -2px -2px 5px rgba(255, 255, 255, 0.5),
     0px 1px 1px rgba(255, 255, 255, 0.5);
 
+  // Clip any scaled content for a clean zoom effect
+  overflow: hidden;
+
   & .q-img {
 
     border-radius: 10px;
@@ -192,6 +220,10 @@ const backgroundStyle = computed(() => {
 
   border-radius: 0 0 8px 8px;
   filter: brightness(0.95);
+  // Subtle always-on zoom
+  transform: scale(1.08);
+  transform-origin: center;
+  will-change: transform;
 }
 
 .lock-overlay {
