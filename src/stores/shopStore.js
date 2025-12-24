@@ -192,8 +192,25 @@ export const useShopStore = defineStore('shop', {
       }
     },
 
-    async deletarOferta(offerId) {
+    async deletarOferta(offerOrId) {
       try {
+        const offerId = typeof offerOrId === 'object' && offerOrId !== null ? offerOrId.id : offerOrId;
+        const knownComprado = typeof offerOrId === 'object' && offerOrId !== null ? offerOrId.comprado : undefined;
+        const localOffer =
+          this.ofertasParaMim.find(o => o.id === offerId) ||
+          this.minhasOfertas.find(o => o.id === offerId);
+        const isComprado = knownComprado ?? localOffer?.comprado;
+
+        if (isComprado) {
+          Notify.create({
+            message: "You can't delete an offer that was already purchased.",
+            color: 'warning',
+            icon: 'lock',
+            classes: 'snes-font'
+          });
+          return false;
+        }
+
         const { error } = await supabase
           .from('loja_ofertas')
           .delete()

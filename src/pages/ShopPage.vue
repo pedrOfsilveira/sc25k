@@ -219,7 +219,8 @@ const confirmPurchase = async () => {
                   color="negative"
                   icon="delete"
                   class="border-btn alien-font delete-btn"
-                  @click="shopStore.deletarOferta(offer.id)"
+                  :disable="offer.comprado"
+                  @click="shopStore.deletarOferta(offer)"
                 />
               </div>
             </q-card>
@@ -312,7 +313,8 @@ const confirmPurchase = async () => {
                     size="xs"
                     icon="delete"
                     color="negative"
-                    @click="shopStore.deletarOferta(offer.id)"
+                    :disable="offer.comprado"
+                    @click="shopStore.deletarOferta(offer)"
                   />
                 </div>
               </div>
