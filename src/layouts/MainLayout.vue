@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { supabase } from "boot/supabase";
 import { useTreinoStore } from "stores/treinoStore";
 import { treinos } from "src/data/treinos.js";
+import { inject } from "@vercel/analytics"
 
 const store = useTreinoStore();
 const router = useRouter();
