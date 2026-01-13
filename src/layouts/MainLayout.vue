@@ -22,6 +22,8 @@ const resetTab = () => {
     tab.value = 'shop';
   } else if (path === '/profile') {
     tab.value = 'profile';
+  } else if (path === '/ranking') {
+    tab.value = 'ranking';
   } else {
     tab.value = 'home';
   }

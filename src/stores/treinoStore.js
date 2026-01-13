@@ -17,6 +17,7 @@ export const useTreinoStore = defineStore("treino", {
     wakeLock: null,
     currentWeek: null,
     currentDay: null,
+    lastLocalPersistAt: 0,
     completedDays: {} // { "1": [1, 2, 3], "2": [1] } etc
   }),
 
@@ -197,7 +198,12 @@ export const useTreinoStore = defineStore("treino", {
         treinoId: this.treinoAtivo?.id,
         treinoConcluido: this.treinoConcluido,
         currentWeek: this.currentWeek,
-        currentDay: this.currentDay
+        currentDay: this.currentDay,
+        passoAtualIndex: this.passoAtualIndex,
+        timer: this.timer,
+        // We intentionally restore as paused to avoid time drift on refresh
+        estaRodando: this.estaRodando,
+        savedAt: new Date().toISOString()
       };
       localStorage.setItem('retroRun_save', JSON.stringify(estado));
     },
@@ -212,7 +218,10 @@ export const useTreinoStore = defineStore("treino", {
       if (save) {
         try {
           const dados = JSON.parse(save);
-          if (dados.treinoId && dados.treinoConcluido) {
+          if (!dados?.treinoId) return;
+
+          // Restore finished run (awaiting evidence)
+          if (dados.treinoConcluido) {
             this.carregarTreino(dados.treinoId, dados.currentDay || 1);
             this.treinoConcluido = true;
             this.timer = 0;
@@ -225,7 +234,34 @@ export const useTreinoStore = defineStore("treino", {
               position: 'top',
               classes: 'retro-font'
             });
+            return;
           }
+
+          // Restore in-progress run (paused)
+          this.carregarTreino(dados.treinoId, dados.currentDay || 1);
+
+          const estrutura = this.estruturaAtual;
+          const maxIndex = Math.max(0, (estrutura?.length || 1) - 1);
+          const restoredIndex = Math.max(0, Math.min(Number(dados.passoAtualIndex ?? 0), maxIndex));
+          this.passoAtualIndex = restoredIndex;
+          this.timer = Math.max(0, Number(dados.timer ?? this.timer) || 0);
+          this.treinoConcluido = false;
+
+          // Always restore paused to avoid skipping steps on refresh
+          this.estaRodando = false;
+          this.endTime = null;
+          if (this.intervalId) {
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+          }
+
+          Notify.create({
+            message: 'RUN RESTORED! TAP PLAY TO CONTINUE.',
+            color: 'info',
+            icon: 'restore',
+            position: 'top',
+            classes: 'retro-font'
+          });
         } catch (e) {
           this.limparEstadoLocal();
         }
@@ -244,6 +280,7 @@ export const useTreinoStore = defineStore("treino", {
         this.timer = estrutura[0]?.tempo || 0;
         this.estaRodando = false;
         this.endTime = null;
+        this.salvarEstadoLocal();
       }
     },
 
@@ -263,6 +300,8 @@ export const useTreinoStore = defineStore("treino", {
       const agora = Date.now();
       this.endTime = agora + (this.timer * 1000);
 
+      this.salvarEstadoLocal();
+
       this.intervalId = setInterval(() => {
         this.tick();
       }, 200);
@@ -271,6 +310,7 @@ export const useTreinoStore = defineStore("treino", {
     async pausarTimer() {
       this.estaRodando = false;
       if (this.intervalId) clearInterval(this.intervalId);
+      this.salvarEstadoLocal();
 
       if (this.wakeLock) {
         try {
@@ -286,6 +326,12 @@ export const useTreinoStore = defineStore("treino", {
 
       if (segundosRestantes >= 0) {
         this.timer = segundosRestantes;
+
+        // Persist at most once per second
+        if (!this.lastLocalPersistAt || (agora - this.lastLocalPersistAt) >= 1000) {
+          this.lastLocalPersistAt = agora;
+          this.salvarEstadoLocal();
+        }
       } else {
         this.proximoPasso();
       }
@@ -303,6 +349,8 @@ export const useTreinoStore = defineStore("treino", {
 
         const agora = Date.now();
         this.endTime = agora + (this.timer * 1000);
+
+        this.salvarEstadoLocal();
 
         this.intervalId = setInterval(() => {
           this.tick();

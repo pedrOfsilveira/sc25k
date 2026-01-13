@@ -17,6 +17,47 @@ export const useShopStore = defineStore('shop', {
 
   actions: {
 
+    _isUuid(value) {
+      if (typeof value !== 'string') return false;
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.trim());
+    },
+
+    async _fetchProfilesByIds(userIds) {
+      const ids = Array.from(new Set((userIds || []).filter(Boolean)));
+      if (ids.length === 0) return new Map();
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url')
+        .in('id', ids);
+
+      if (error) throw error;
+
+      const map = new Map();
+      for (const p of data || []) {
+        if (p?.id) map.set(p.id, p);
+      }
+      return map;
+    },
+
+    async _enrichOffersWithCreatorProfiles(offers) {
+      try {
+        const creatorIds = (offers || []).map(o => o?.criador_id).filter(Boolean);
+        const profilesById = await this._fetchProfilesByIds(creatorIds);
+        for (const offer of offers || []) {
+          const p = profilesById.get(offer.criador_id);
+          if (p?.avatar_url && !offer.criador_avatar) {
+            offer.criador_avatar = p.avatar_url;
+          }
+          if (p?.name && !offer.criador_name) {
+            offer.criador_name = p.name;
+          }
+        }
+      } catch (e) {
+        // If profiles are protected by RLS and cannot be fetched, fall back silently
+      }
+    },
+
     async carregarDados() {
       this.loading = true;
       try {
@@ -63,6 +104,7 @@ export const useShopStore = defineStore('shop', {
         if (erroRecebidas) throw erroRecebidas;
         console.log('Offers for user:', { userName, count: ofertasRecebidas?.length || 0, offers: ofertasRecebidas });
         this.ofertasParaMim = ofertasRecebidas || [];
+        await this._enrichOffersWithCreatorProfiles(this.ofertasParaMim);
 
         this.totalGasto = this.ofertasParaMim
           .filter(item => item.comprado)
@@ -76,6 +118,7 @@ export const useShopStore = defineStore('shop', {
 
         if (erroCriadas) throw erroCriadas;
         this.minhasOfertas = ofertasCriadas || [];
+        await this._enrichOffersWithCreatorProfiles(this.minhasOfertas);
 
       } catch (error) {
         console.error("Erro ao carregar loja:", error);
@@ -305,17 +348,22 @@ export const useShopStore = defineStore('shop', {
           return null;
         }
 
+        const profileUpsert = {
+          id: userId,
+          name: nameLower,
+          updated_at: new Date().toISOString()
+        };
+
+        // Avoid wiping existing avatar/org when the value isn't available
+        if (avatarUrl) profileUpsert.avatar_url = avatarUrl;
+
+        // Optional org id (new schema); only set when it looks valid
+        const orgId = arguments.length >= 4 ? arguments[3] : null;
+        if (this._isUuid(orgId)) profileUpsert.org_id = orgId;
+
         const { data, error } = await supabase
           .from('profiles')
-          .upsert(
-            {
-              id: userId,
-              name: nameLower,
-              avatar_url: avatarUrl,
-              updated_at: new Date().toISOString()
-            },
-            { onConflict: 'id' }
-          )
+          .upsert(profileUpsert, { onConflict: 'id' })
           .select();
 
         if (error) throw error;

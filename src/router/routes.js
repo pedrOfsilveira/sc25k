@@ -22,6 +22,13 @@ const routes = [
     children: [{ path: "", component: () => import("pages/ProfilePage.vue") }],
   },
 
+  {
+    path: "/ranking",
+    component: () => import("layouts/MainLayout.vue"),
+    meta: { requiresAuth: true },
+    children: [{ path: "", component: () => import("pages/RankingPage.vue") }],
+  },
+
   // Always leave this as last one,
   // but you can also remove it
   {

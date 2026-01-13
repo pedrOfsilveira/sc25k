@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { supabase } from 'boot/supabase'
 import { useRouter } from 'vue-router'
 import { Notify } from 'quasar'
+import imageCompression from 'browser-image-compression'
 
 const router = useRouter()
 const user = ref(null)
@@ -89,6 +90,19 @@ const updateName = async () => {
 
     if (error) throw error
 
+    // Keep DB profile in sync (new schema: profiles.name)
+    try {
+      await supabase
+        .from('profiles')
+        .update({
+          name: newName.value.trim().toLowerCase(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.value.id)
+    } catch (_) {
+      // ignore: auth metadata still updated
+    }
+
     name.value = newName.value.trim()
     editingName.value = false
 
@@ -104,6 +118,28 @@ const updateName = async () => {
   }
 }
 
+const extractStoragePathFromPublicAvatarUrl = (url) => {
+  if (!url || typeof url !== 'string') return null
+
+  const markers = [
+    '/storage/v1/object/public/profile-pictures/',
+    '/storage/v1/object/sign/profile-pictures/'
+  ]
+
+  const marker = markers.find(m => url.includes(m))
+  if (!marker) return null
+
+  const after = url.split(marker)[1]
+  if (!after) return null
+
+  const path = after.split('?')[0]
+  try {
+    return decodeURIComponent(path)
+  } catch (_) {
+    return path
+  }
+}
+
 const uploadAvatar = async (event) => {
   const file = event.target.files[0]
   if (!file) return
@@ -113,24 +149,40 @@ const uploadAvatar = async (event) => {
     return
   }
 
-  if (file.size > 2 * 1024 * 1024) {
-    Notify.create({ message: 'Image must be less than 2MB', color: 'warning' })
+  // Allow a larger source image; we'll compress before upload.
+  if (file.size > 10 * 1024 * 1024) {
+    Notify.create({ message: 'Image must be less than 10MB', color: 'warning' })
     return
   }
 
   uploadingAvatar.value = true
 
   try {
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${user.value.id}-${Date.now()}.${fileExt}`
-    const filePath = `${fileName}` // Simplified path - no subfolder
+    const previousAvatarUrl = avatarUrl.value
+    const previousStoragePath = extractStoragePathFromPublicAvatarUrl(previousAvatarUrl)
+
+    const compressedFile = await imageCompression(file, {
+      maxSizeMB: 0.25,
+      maxWidthOrHeight: 512,
+      useWebWorker: true,
+      fileType: 'image/jpeg',
+      initialQuality: 0.8
+    })
+
+    if (compressedFile.size > 2 * 1024 * 1024) {
+      throw new Error('Compressed image is still too large')
+    }
+
+    // Use a deterministic path so users don't accumulate old files.
+    const filePath = `${user.value.id}.jpg`
 
     // Check if bucket exists and try to upload
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('profile-pictures')
-      .upload(filePath, file, {
+      .upload(filePath, compressedFile, {
         cacheControl: '3600',
-        upsert: true
+        upsert: true,
+        contentType: 'image/jpeg'
       })
 
     if (uploadError) {
@@ -159,6 +211,30 @@ const uploadAvatar = async (event) => {
 
     avatarUrl.value = urlData.publicUrl
 
+    // Best-effort: delete old avatar object if it was stored in our bucket
+    if (previousStoragePath && previousStoragePath !== filePath) {
+      try {
+        await supabase.storage
+          .from('profile-pictures')
+          .remove([previousStoragePath])
+      } catch (_) {
+        // ignore: not critical
+      }
+    }
+
+    // Keep DB profile in sync (new schema: profiles.avatar_url)
+    try {
+      await supabase
+        .from('profiles')
+        .update({
+          avatar_url: urlData.publicUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.value.id)
+    } catch (_) {
+      // ignore: metadata already updated
+    }
+
     Notify.create({
       message: 'AVATAR UPDATED!',
       color: 'positive',
@@ -183,6 +259,10 @@ const logout = async () => {
   await supabase.auth.signOut()
   // local data will be cleared by auth-init boot hook
   router.push('/login')
+}
+
+const goToRanking = () => {
+  router.push('/ranking')
 }
 </script>
 
@@ -338,6 +418,14 @@ const logout = async () => {
         <!-- Actions -->
         <q-card class="action-card">
           <div class="action-card-body">
+            <q-btn
+              flat
+              label="RANKING"
+              icon="emoji_events"
+              color="accent"
+              class="alien-font border-btn full-width q-mb-sm"
+              @click="goToRanking"
+            />
             <q-btn
               flat
               label="LOGOUT"

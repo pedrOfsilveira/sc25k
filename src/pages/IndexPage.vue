@@ -19,6 +19,7 @@ const confirmDialog = ref(false);
 const fotoEvidence = ref(null);
 const daySelectDialog = ref(false);
 const selectedWeek = ref(null);
+const helpDialog = ref(false);
 
 // Variáveis do Efeito Zoom
 const activeCartuchoId = ref(null);
@@ -123,6 +124,10 @@ const confirmarVitoria = () => {
     fotoEvidence.value = null;
   }
 };
+
+const abrirAjuda = () => {
+  helpDialog.value = true;
+};
 </script>
 
 <template>
@@ -132,6 +137,17 @@ const confirmarVitoria = () => {
       <div id="stars2"></div>
       <div id="stars3"></div>
     </div>
+
+    <q-btn
+      v-if="!store.treinoAtivo"
+      flat
+      dense
+      label="?"
+      color="accent"
+      class="border-btn help-btn alien-font"
+      aria-label="Help"
+      @click="abrirAjuda"
+    />
 
     <div v-if="!store.treinoAtivo" class="content-wrapper-index">
       <div class="select mb q-pa-md street-font flex items-center text-h3 snes-blink text-center">
@@ -331,6 +347,62 @@ const confirmarVitoria = () => {
         </div>
       </q-card>
     </q-dialog>
+
+    <q-dialog v-model="helpDialog" backdrop-filter="blur(4px)" class="retro-dialog">
+      <q-card class="confirm-dialog-card help-dialog-card">
+        <div class="dialog-card-header justify-center">
+          <q-icon name="help" color="accent" size="md" class="snes-blink" />
+          <div class="alien-font text-accent" style="font-size: 12px; letter-spacing: 1px; text-shadow: 2px 2px 0 #000">WHAT IS C25K?</div>
+        </div>
+
+        <div class="dialog-card-body">
+          <div class="alien-font text-white text-justify" style="font-size: 12px; line-height: 18px; letter-spacing: 1px;">
+            COUCH TO 5K (C25K) IS A BEGINNER PROGRAM THAT BUILDS YOU FROM WALK/RUN INTERVALS
+            TO RUNNING 5K CONSISTENTLY.
+          </div>
+
+          <q-separator color="grey-8" class="q-my-md" />
+
+          <div class="alien-font text-grey-5" style="font-size: 10px; letter-spacing: 1px;">HOW THIS APP WORKS</div>
+          <div class="help-list q-mt-sm" style="letter-spacing: 1px;">
+            <div class="help-step">
+              <div class="help-step-num star-font text-accent">1</div>
+              <div class="help-step-text alien-font text-white text-left">SELECT A WEEK (STAGE) AND PICK DAY 1/2/3.</div>
+            </div>
+            <div class="help-step">
+              <div class="help-step-num star-font text-accent">2</div>
+              <div class="help-step-text alien-font text-white text-left">FOLLOW THE TIMER: RUN / WALK / WARM UP / COOL DOWN.</div>
+            </div>
+            <div class="help-step">
+              <div class="help-step-num star-font text-accent">3</div>
+              <div class="help-step-text alien-font text-white text-left">WHEN YOU FINISH, UPLOAD EVIDENCE TO SAVE THE RUN.</div>
+            </div>
+            <div class="help-step">
+              <div class="help-step-num star-font text-accent">4</div>
+              <div class="help-step-text alien-font text-white text-left">COMPLETED DAYS UNLOCK THE NEXT WEEK.</div>
+            </div>
+            <div class="help-step">
+              <div class="help-step-num star-font text-accent">5</div>
+              <div class="help-step-text alien-font text-white text-left">EARN XP FROM RUNS AND SPEND IT IN THE SHOP.</div>
+            </div>
+            <div class="help-step">
+              <div class="help-step-num star-font text-accent">6</div>
+              <div class="help-step-text alien-font text-white text-left">CHECK YOUR PROGRESS IN PROFILE AND COMPARE ON THE RANKING.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dialog-card-actions justify-center">
+          <q-btn
+            flat
+            label="CLOSE"
+            color="info"
+            class="alien-font border-btn"
+            @click="helpDialog = false"
+          />
+        </div>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -396,6 +468,46 @@ $shadows-big: multiple-box-shadow(100);
 .border-btn {
   border: 2px solid currentColor;
   border-radius: 0;
+}
+
+.help-btn {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 3000;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.help-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.help-step {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.help-step-num {
+  width: 22px;
+  height: 22px;
+  border: 2px solid currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  line-height: 1;
+}
+
+.help-step-text {
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .retro-btn {

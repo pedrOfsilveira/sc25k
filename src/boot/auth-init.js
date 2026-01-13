@@ -18,9 +18,17 @@ export default boot(() => {
       const u = _session.user;
       const name = u.user_metadata?.name || u.email;
       const avatar_url = u.user_metadata?.avatar_url || null;
+      const orgId =
+        u.user_metadata?.org_id ||
+        u.user_metadata?.orgId ||
+        u.user_metadata?.organization_id ||
+        u.app_metadata?.org_id ||
+        u.app_metadata?.orgId ||
+        u.app_metadata?.organization_id ||
+        null;
       try {
         // Use store method to enforce uniqueness and lowercase storage
-        await shopStore.createUserProfile(u.id, name, avatar_url);
+        await shopStore.createUserProfile(u.id, name, avatar_url, orgId);
       } catch (_) {}
 
       store.loadCompletedDaysFromDB();
