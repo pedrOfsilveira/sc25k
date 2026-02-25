@@ -426,7 +426,7 @@ export const useTreinoStore = defineStore("treino", {
 
         if (status === TRAINING_STATUS.CANCELED) {
            Notify.create({
-            message: `GAME OVER. SAVED ${pontos} PTS.`,
+            message: `GAME OVER · +${pontos} XP SAVED · RUN MARKED INCOMPLETE.`,
             color: "warning",
             position: "top",
             classes: "retro-font"
@@ -474,7 +474,7 @@ export const useTreinoStore = defineStore("treino", {
         await this.registrarHistorico(TRAINING_STATUS.COMPLETED, publicUrl);
 
         Notify.create({
-          message: `MISSION COMPLETE!`,
+          message: `MISSION COMPLETE! +${pontos} XP EARNED · DAY SAVED.`,
           color: "positive",
           icon: "emoji_events",
           position: "top",

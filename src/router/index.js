@@ -4,6 +4,14 @@ import routes from './routes'
 // 1. IMPORTANTE: Importar o cliente do supabase que criámos no boot file
 import { supabase } from 'src/boot/supabase'
 
+// Cache session to avoid async getSession() on every navigation
+let cachedSession = undefined // undefined = not yet loaded
+
+// Listen for auth changes to keep cache fresh
+supabase.auth.onAuthStateChange((_event, session) => {
+  cachedSession = session
+})
+
 export default route(function (/* { store, ssrContext } */) {
   const createHistory = process.env.SERVER
     ? createMemoryHistory
@@ -18,7 +26,13 @@ export default route(function (/* { store, ssrContext } */) {
   Router.beforeEach(async (to, from, next) => {
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
 
-    const { data: { session } } = await supabase.auth.getSession()
+    // Use cached session when available; only fetch once on cold start
+    let session = cachedSession
+    if (session === undefined) {
+      const { data } = await supabase.auth.getSession()
+      session = data.session
+      cachedSession = session
+    }
 
     if (requiresAuth && !session) {
       next('/login')

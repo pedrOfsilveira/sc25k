@@ -421,6 +421,10 @@ const confirmPurchase = async () => {
             <span class="alien-font text-grey-5">COST</span>
             <span class="star-font text-negative">{{ offerToBuy.preco }} XP</span>
           </div>
+          <div class="text-grey-6 alien-font q-mt-sm" style="font-size: 9px; line-height: 16px; letter-spacing: 0.5px;">
+            <q-icon name="info" size="10px" class="q-mr-xs" />
+            YOUR BALANCE AFTER: <span class="star-font text-accent">{{ shopStore.saldoDisponivel - offerToBuy.preco }} XP</span>
+          </div>
         </div>
         <div class="offer-card-actions justify-center q-gutter-x-md">
           <q-btn flat label="NO" color="red-13" class="alien-font border-btn" v-close-popup />

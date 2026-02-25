@@ -500,8 +500,12 @@ async function shareCompletion() {
           <div class="text-white alien-font text-subtitle2">
             DO YOU WANT TO GIVE UP?
           </div>
-          <div class="text-grey-5 alien-font q-mt-md" style="font-size: 10px;">
+          <div class="text-grey-5 alien-font q-mt-md" style="font-size: 10px; line-height: 18px;">
             PROGRESS WILL BE SAVED AS <span class="text-negative star-font">INCOMPLETE</span>.
+          </div>
+          <div class="text-grey-6 alien-font q-mt-sm" style="font-size: 9px; line-height: 16px; letter-spacing: 0.5px;">
+            <q-icon name="info" size="10px" class="q-mr-xs" />
+            YOU'LL EARN PARTIAL XP BASED ON PROGRESS. YOU CAN RETRY THIS DAY ANYTIME.
           </div>
         </div>
 

@@ -50,7 +50,7 @@ Ship a stable, delightful, and sticky retro C25K app that improves completion ra
 - [X] Decide and implement repeat-run policy (full XP, partial XP, or no XP) — **50% XP for repeats**
 
 ### Nice-to-have
-- [ ] “What changed” micro-copy in dialogs for clearer feedback
+- [X] "What changed" micro-copy in dialogs for clearer feedback
 
 ### Exit criteria
 - User can recover account without support

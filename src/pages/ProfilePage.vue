@@ -180,7 +180,7 @@ const updateName = async () => {
     editingName.value = false
 
     Notify.create({
-      message: 'NAME UPDATED!',
+      message: 'NAME UPDATED! VISIBLE ON RANKING & SHOP.',
       color: 'positive',
       icon: 'check_circle',
       classes: 'snes-font'
@@ -309,7 +309,7 @@ const uploadAvatar = async (event) => {
     }
 
     Notify.create({
-      message: 'AVATAR UPDATED!',
+      message: 'AVATAR UPDATED! OTHERS WILL SEE IT ON RANKING.',
       color: 'positive',
       icon: 'check_circle',
       classes: 'snes-font'

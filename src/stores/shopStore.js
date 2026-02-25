@@ -156,7 +156,7 @@ export const useShopStore = defineStore('shop', {
         await insertOffer(offerData);
 
         Notify.create({
-          message: 'ITEM LISTED SUCCESSFULLY!',
+          message: `ITEM LISTED! IT WILL APPEAR IN ${cleanName.toUpperCase()}'S SHOP.`,
           color: 'positive',
           icon: 'check_circle',
           classes: 'snes-font'
@@ -193,7 +193,7 @@ export const useShopStore = defineStore('shop', {
         await markOfferPurchased(item.id);
 
         Notify.create({
-          message: 'ITEM ACQUIRED! GENERATING TICKET...',
+          message: `ITEM ACQUIRED! ${item.preco} XP DEDUCTED FROM WALLET.`,
           color: 'positive',
           icon: 'print',
           classes: 'snes-font'
@@ -235,7 +235,7 @@ export const useShopStore = defineStore('shop', {
         await this.carregarDados();
 
         Notify.create({
-          message: 'OFFER DELETED!',
+          message: 'OFFER DELETED! REMOVED FROM THE SHOP.',
           color: 'positive',
           icon: 'delete',
           classes: 'snes-font'
