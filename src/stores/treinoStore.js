@@ -364,6 +364,43 @@ export const useTreinoStore = defineStore("treino", {
       }
     },
 
+    pularAquecimentoInicial() {
+      const estrutura = this.estruturaAtual;
+      const passo = this.passoAtual;
+
+      if (!Array.isArray(estrutura) || estrutura.length < 2) return;
+      if (this.passoAtualIndex !== 0) return;
+      if (!passo || passo.tipo !== "aquecimento") return;
+
+      if (this.intervalId) {
+        clearInterval(this.intervalId);
+        this.intervalId = null;
+      }
+
+      this.passoAtualIndex = 1;
+      this.timer = this.passoAtual?.tempo || 0;
+
+      if (this.estaRodando) {
+        const agora = Date.now();
+        this.endTime = agora + (this.timer * 1000);
+        this.intervalId = setInterval(() => {
+          this.tick();
+        }, 200);
+      } else {
+        this.endTime = null;
+      }
+
+      this.salvarEstadoLocal();
+
+      Notify.create({
+        message: 'WARMUP SKIPPED. RUN STARTED!',
+        color: 'info',
+        icon: 'fast_forward',
+        position: 'top',
+        classes: 'retro-font'
+      });
+    },
+
     async cancelarTreino() {
       this.pausarTimer();
       // If quit in the first cycle (warmup + first run), ignore the run

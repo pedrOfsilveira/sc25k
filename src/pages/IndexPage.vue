@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount } from "vue";
+import { ref, watch, onMounted, onBeforeUnmount, computed } from "vue";
 import { useTreinoStore } from "stores/treinoStore";
 import { treinos } from "src/data/treinos.js";
 import { supabase } from "boot/supabase";
@@ -202,6 +202,17 @@ const toggleTimer = () => {
   } else {
     store.iniciarTimer();
   }
+};
+
+const canSkipInitialWarmup = computed(() => {
+  return !!store.treinoAtivo
+    && !store.treinoConcluido
+    && store.passoAtualIndex === 0
+    && store.passoAtual?.tipo === 'aquecimento';
+});
+
+const skipInitialWarmup = () => {
+  store.pularAquecimentoInicial();
 };
 
 const tentarCancelar = () => {
@@ -462,6 +473,18 @@ async function shareCompletion() {
       </div>
 
       <div v-if="!store.treinoConcluido" class="full-width q-mb-md text-center">
+        <q-btn
+          v-if="canSkipInitialWarmup"
+          flat
+          dense
+          icon="fast_forward"
+          label="SKIP WARMUP"
+          color="warning"
+          class="alien-font border-btn q-mb-sm"
+          style="font-size: 11px;"
+          @click="skipInitialWarmup"
+        />
+
         <div class="login-card q-pa-sm q-mt-md">
           <div class="login-action-card">
             <div class="btn-holder">
