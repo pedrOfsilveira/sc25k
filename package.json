@@ -28,6 +28,7 @@
   "devDependencies": {
     "@quasar/app-vite": "^2.1.0",
     "autoprefixer": "^10.4.2",
+    "baseline-browser-mapping": "^2.10.0",
     "postcss": "^8.4.14",
     "workbox-build": "^7.4.0",
     "workbox-cacheable-response": "^7.4.0",

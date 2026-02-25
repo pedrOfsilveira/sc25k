@@ -1,6 +1,20 @@
 import { defineStore } from 'pinia';
 import { supabase } from 'boot/supabase';
 import { Notify } from 'quasar';
+import {
+  fetchProfilesByIds,
+  fetchHistoryScoresByUser,
+  fetchOffersReceivedByName,
+  fetchOffersReceivedByNameInsensitive,
+  fetchOffersByCreator,
+  insertOffer,
+  markOfferPurchased,
+  deleteOfferById,
+  fetchAllProfiles,
+  findProfileByName,
+  findAnotherProfileWithName,
+  upsertProfile
+} from 'src/services/shopService';
 
 export const useShopStore = defineStore('shop', {
   state: () => ({
@@ -23,18 +37,9 @@ export const useShopStore = defineStore('shop', {
     },
 
     async _fetchProfilesByIds(userIds) {
-      const ids = Array.from(new Set((userIds || []).filter(Boolean)));
-      if (ids.length === 0) return new Map();
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, avatar_url')
-        .in('id', ids);
-
-      if (error) throw error;
-
+      const data = await fetchProfilesByIds(userIds);
       const map = new Map();
-      for (const p of data || []) {
+      for (const p of data) {
         if (p?.id) map.set(p.id, p);
       }
       return map;
@@ -66,43 +71,21 @@ export const useShopStore = defineStore('shop', {
 
         const userName = (user.user_metadata?.name || user.email).toLowerCase();
 
-        const { data: historico, error: erroHist } = await supabase
-          .from('historico_treinos')
-          .select('pontuacao')
-          .eq('user_id', user.id);
-
-        if (erroHist) throw erroHist;
+        const historico = await fetchHistoryScoresByUser(user.id);
 
         this.saldoTotal = historico?.reduce((sum, item) => sum + (item.pontuacao || 0), 0) || 0;
 
         // Try exact match first, then case-insensitive
-        let ofertasRecebidas;
-        let erroRecebidas;
+        let ofertasRecebidas = [];
 
-        const { data: exactMatch, error: errorExact } = await supabase
-          .from('loja_ofertas')
-          .select('*')
-          .eq('destinatario_name', userName)
-          .order('comprado', { ascending: true })
-          .order('created_at', { ascending: false });
+        const exactMatch = await fetchOffersReceivedByName(userName);
 
-        if (exactMatch && exactMatch.length > 0) {
+        if (exactMatch.length > 0) {
           ofertasRecebidas = exactMatch;
-          erroRecebidas = null;
         } else {
-          // Fall back to case-insensitive search
-          const { data: caseInsensitive, error: errorCI } = await supabase
-            .from('loja_ofertas')
-            .select('*')
-            .ilike('destinatario_name', userName)
-            .order('comprado', { ascending: true })
-            .order('created_at', { ascending: false });
-          ofertasRecebidas = caseInsensitive;
-          erroRecebidas = errorCI;
+          ofertasRecebidas = await fetchOffersReceivedByNameInsensitive(userName);
         }
 
-        if (erroRecebidas) throw erroRecebidas;
-        console.log('Offers for user:', { userName, count: ofertasRecebidas?.length || 0, offers: ofertasRecebidas });
         this.ofertasParaMim = ofertasRecebidas || [];
         await this._enrichOffersWithCreatorProfiles(this.ofertasParaMim);
 
@@ -110,13 +93,7 @@ export const useShopStore = defineStore('shop', {
           .filter(item => item.comprado)
           .reduce((sum, item) => sum + item.preco, 0);
 
-        const { data: ofertasCriadas, error: erroCriadas } = await supabase
-          .from('loja_ofertas')
-          .select('*')
-          .eq('criador_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (erroCriadas) throw erroCriadas;
+        const ofertasCriadas = await fetchOffersByCreator(user.id);
         this.minhasOfertas = ofertasCriadas || [];
         await this._enrichOffersWithCreatorProfiles(this.minhasOfertas);
 
@@ -141,10 +118,8 @@ export const useShopStore = defineStore('shop', {
           return false;
         }
 
-        console.log('Looking for user with name:', cleanName);
         const recipient = await this.buscarUsuarioPorNome(cleanName);
         if (!recipient) {
-          console.log('Recipient not found:', cleanName);
           Notify.create({
             message: `No user found with name: ${cleanName}`,
             color: 'negative',
@@ -154,7 +129,6 @@ export const useShopStore = defineStore('shop', {
           return false;
         }
 
-        console.log('Recipient found:', recipient);
         const offerData = {
           criador_id: user.id,
           criador_name: userName,
@@ -168,12 +142,7 @@ export const useShopStore = defineStore('shop', {
           offerData.criador_avatar = avatarUrl;
         }
 
-        const { error } = await supabase.from('loja_ofertas').insert(offerData);
-
-        if (error) {
-          console.error('Error creating offer:', error);
-          throw error;
-        }
+        await insertOffer(offerData);
 
         Notify.create({
           message: 'ITEM LISTED SUCCESSFULLY!',
@@ -182,7 +151,7 @@ export const useShopStore = defineStore('shop', {
           classes: 'snes-font'
         });
 
-        this.carregarDados();
+        await this.carregarDados();
         return true;
 
       } catch (error) {
@@ -210,12 +179,7 @@ export const useShopStore = defineStore('shop', {
       }
 
       try {
-        const { error } = await supabase
-          .from('loja_ofertas')
-          .update({ comprado: true, comprado_em: new Date() })
-          .eq('id', item.id);
-
-        if (error) throw error;
+        await markOfferPurchased(item.id);
 
         Notify.create({
           message: 'ITEM ACQUIRED! GENERATING TICKET...',
@@ -254,15 +218,7 @@ export const useShopStore = defineStore('shop', {
           return false;
         }
 
-        const { error } = await supabase
-          .from('loja_ofertas')
-          .delete()
-          .eq('id', offerId);
-
-        if (error) {
-          console.error('Delete error:', error);
-          throw error;
-        }
+        await deleteOfferById(offerId);
 
         // Reload data to refresh the lists
         await this.carregarDados();
@@ -289,12 +245,7 @@ export const useShopStore = defineStore('shop', {
 
     async getAllProfiles() {
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, name, avatar_url');
-
-        if (error) throw error;
-        console.log('All profiles in DB:', data);
+        const data = await fetchAllProfiles();
         return data || [];
       } catch (error) {
         console.error('Error fetching all profiles:', error);
@@ -305,20 +256,9 @@ export const useShopStore = defineStore('shop', {
     async buscarUsuarioPorNome(nome) {
       try {
         const nameLower = (nome || '').toLowerCase();
-        // Exact match on lowercase name
-        const { data: exactMatch, error: error1 } = await supabase
-          .from('profiles')
-          .select('id, name, avatar_url')
-          .eq('name', nameLower)
-          .limit(1);
+        const exactMatch = await findProfileByName(nameLower);
 
-        if (!error1 && Array.isArray(exactMatch) && exactMatch.length > 0) {
-          console.log('Found exact match:', exactMatch[0]);
-          return exactMatch[0];
-        }
-
-        console.log('No user found with name:', nameLower);
-        return null;
+        return exactMatch || null;
       } catch (error) {
         console.error('Error searching user:', error);
         return null;
@@ -328,17 +268,8 @@ export const useShopStore = defineStore('shop', {
     async createUserProfile(userId, name, avatarUrl = null) {
       try {
         const nameLower = (name || '').toLowerCase();
-        console.log('Creating profile for user:', { userId, name: nameLower, avatarUrl });
-        // Enforce unique names (case-insensitive via lowercase storage)
-        const { data: existing, error: checkError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('name', nameLower)
-          .neq('id', userId)
-          .limit(1);
-
-        if (checkError) throw checkError;
-        if (Array.isArray(existing) && existing.length > 0) {
+        const hasNameCollision = await findAnotherProfileWithName(nameLower, userId);
+        if (hasNameCollision) {
           Notify.create({
             message: 'Name already in use. Choose another.',
             color: 'warning',
@@ -361,14 +292,7 @@ export const useShopStore = defineStore('shop', {
         const orgId = arguments.length >= 4 ? arguments[3] : null;
         if (this._isUuid(orgId)) profileUpsert.org_id = orgId;
 
-        const { data, error } = await supabase
-          .from('profiles')
-          .upsert(profileUpsert, { onConflict: 'id' })
-          .select();
-
-        if (error) throw error;
-        console.log('Profile created successfully:', data);
-        return data;
+        return await upsertProfile(profileUpsert);
       } catch (error) {
         console.error('Error creating user profile:', error);
         Notify.create({

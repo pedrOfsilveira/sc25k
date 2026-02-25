@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { Notify } from 'quasar'
 import { supabase } from 'boot/supabase'
 import { treinos } from 'src/data/treinos.js'
+import StarBackground from 'src/components/StarBackground.vue'
 
 const loading = ref(true)
 const rows = ref([])
@@ -122,11 +123,7 @@ onMounted(loadRanking)
 
 <template>
   <q-page class="page-container q-pa-md">
-    <div class="star-background">
-      <div id="stars"></div>
-      <div id="stars2"></div>
-      <div id="stars3"></div>
-    </div>
+    <StarBackground />
 
     <div class="content-wrapper q-px-md">
       <div class="text-center q-mb-md">
@@ -235,18 +232,6 @@ onMounted(loadRanking)
 </template>
 
 <style scoped lang="scss">
-@function multiple-box-shadow($n) {
-  $value: "#{random(2000)}px #{random(2000)}px #FFF";
-  @for $i from 2 through $n {
-    $value: "#{$value} , #{random(2000)}px #{random(2000)}px #FFF";
-  }
-  @return unquote($value);
-}
-
-$shadows-small: multiple-box-shadow(700);
-$shadows-medium: multiple-box-shadow(200);
-$shadows-big: multiple-box-shadow(100);
-
 .page-container {
   display: flex;
   justify-content: center;
@@ -259,53 +244,6 @@ $shadows-big: multiple-box-shadow(100);
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
-}
-
-.star-background {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  overflow: hidden;
-}
-
-#stars,
-#stars2,
-#stars3 {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 1px;
-  height: 1px;
-  background: transparent;
-}
-
-#stars {
-  box-shadow: $shadows-small;
-  animation: animStar 50s linear infinite;
-}
-
-#stars2 {
-  width: 2px;
-  height: 2px;
-  box-shadow: $shadows-medium;
-  animation: animStar 100s linear infinite;
-}
-
-#stars3 {
-  width: 3px;
-  height: 3px;
-  box-shadow: $shadows-big;
-  animation: animStar 150s linear infinite;
-}
-
-@keyframes animStar {
-  from { transform: translateY(0px); }
-  to { transform: translateY(-2000px); }
 }
 
 // Profile-like card styles (kept local because ProfilePage styles are scoped)

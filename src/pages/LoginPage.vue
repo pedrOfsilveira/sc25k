@@ -181,6 +181,8 @@ const handleAuth = async (action) => {
 </template>
 
 <style lang="scss">
+@use "sass:color";
+
 .line {
   width: 100%;
 }
@@ -207,7 +209,7 @@ const handleAuth = async (action) => {
   background-color: #12121e;
 }
 .inner-detail {
-  background-color: darken($snes-light, 10%);
+  background-color: color.adjust($snes-light, $lightness: -10%);
   height: 6px;
   width: 10px;
   box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.5),
@@ -223,7 +225,7 @@ const handleAuth = async (action) => {
   right: -3px;
 
   & .inner-detail {
-    background-color: darken($snes-light, 15%);
+    background-color: color.adjust($snes-light, $lightness: -15%);
     box-shadow: inset 1px 2px 3px rgba(0, 0, 0, 0.6),
       0 1px 0 rgba(255, 255, 255, 0.4);
   }
@@ -248,7 +250,7 @@ const handleAuth = async (action) => {
    border: 1px solid rgba(0, 0, 0, 0.25);
   box-shadow: 0 -3px 4px rgba(0, 0, 0, 0.5),
     inset 1px -2px 1px rgba(255, 255, 255, 0.5),
-    0 12px 0px darken($snes-dark, 25%);
+    0 12px 0px color.adjust($snes-dark, $lightness: -25%);
 }
 
 .login-card::after,
@@ -275,7 +277,7 @@ const handleAuth = async (action) => {
   padding: 6px;
   margin-bottom: 10px;
 
-  background-color: darken($snes-light, 10%);
+  background-color: color.adjust($snes-light, $lightness: -10%);
 
   border-radius: 14px;
 border-bottom: 1px solid rgba(0, 0, 0, 0.15);
@@ -312,7 +314,7 @@ border-left: 1px solid rgba(0, 0, 0, 0.15);
 
 .login-btn-blue {
   background: $snes-blue;
-  box-shadow: 0.5px 2px 0px darken($snes-blue, 15%),
+  box-shadow: 0.5px 2px 0px color.adjust($snes-blue, $lightness: -15%),
     -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
     inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
     inset 2px 3px 4px rgba(255, 255, 255, 0.2),
@@ -323,7 +325,7 @@ border-left: 1px solid rgba(0, 0, 0, 0.15);
 
 .login-btn-red {
   background: $snes-red;
-  box-shadow: 0.5px 2px 0px darken($snes-red, 15%),
+  box-shadow: 0.5px 2px 0px color.adjust($snes-red, $lightness: -15%),
     -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
     inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
     inset 2px 3px 4px rgba(255, 255, 255, 0.2),
@@ -333,7 +335,7 @@ border-left: 1px solid rgba(0, 0, 0, 0.15);
 }
 
 .login-btn-yellow {
-  box-shadow: 0.5px 2px 0px darken($snes-yellow, 15%),
+  box-shadow: 0.5px 2px 0px color.adjust($snes-yellow, $lightness: -15%),
     -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
     inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
     inset 2px 3px 4px rgba(255, 255, 255, 0.2),
@@ -344,7 +346,7 @@ border-left: 1px solid rgba(0, 0, 0, 0.15);
 }
 
 .login-btn-green {
-  box-shadow: 0.5px 2px 0px darken($snes-green, 15%),
+  box-shadow: 0.5px 2px 0px color.adjust($snes-green, $lightness: -15%),
     -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
     inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
     inset 2px 3px 4px rgba(255, 255, 255, 0.2),
@@ -382,7 +384,7 @@ border-left: 1px solid rgba(0, 0, 0, 0.15);
   padding: 0 10px;
 
   & .q-field__control {
-    background-color: darken($snes-light, 10%);
+    background-color: color.adjust($snes-light, $lightness: -10%);
     border-radius: 8px;
     border: 1px solid rgba(0, 0, 0, 0.25);
     overflow: hidden;
@@ -399,7 +401,7 @@ border-left: 1px solid rgba(0, 0, 0, 0.15);
   & .q-field__native:-webkit-autofill:hover,
   & .q-field__native:-webkit-autofill:focus,
   & .q-field__native:-webkit-autofill:active {
-      -webkit-box-shadow: 0 0 0 100px darken($snes-light, 10%) inset !important;
+      -webkit-box-shadow: 0 0 0 100px color.adjust($snes-light, $lightness: -10%) inset !important;
 
       -webkit-text-fill-color: #333 !important;
       transition: background-color 5000s ease-in-out 0s;

@@ -3,6 +3,17 @@ import { treinos } from "src/data/treinos.js";
 import { supabase } from "boot/supabase";
 import { Notify } from "quasar";
 import imageCompression from "browser-image-compression";
+import {
+  fetchCompletedDaysByUser,
+  upsertCompletedDay,
+  upsertCompletedWeek,
+  insertTrainingHistory
+} from "src/services/trainingService";
+
+const TRAINING_STATUS = {
+  COMPLETED: "COMPLETED",
+  CANCELED: "CANCELED"
+};
 
 export const useTreinoStore = defineStore("treino", {
   state: () => ({
@@ -100,15 +111,7 @@ export const useTreinoStore = defineStore("treino", {
           return;
         }
 
-        const { data, error } = await supabase
-          .from('completed_days')
-          .select('week_id, day')
-          .eq('user_id', user.id);
-
-        if (error) {
-          this.loadCompletedDays();
-          return;
-        }
+        const data = await fetchCompletedDaysByUser(user.id);
 
         const aggregated = {};
         (data || []).forEach(row => {
@@ -164,14 +167,12 @@ export const useTreinoStore = defineStore("treino", {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-        await supabase
-          .from('completed_days')
-          .upsert({
-            user_id: user.id,
-            week_id: weekId,
-            day: day,
-            completed_at: new Date().toISOString()
-          }, { onConflict: 'user_id,week_id,day' });
+        await upsertCompletedDay({
+          user_id: user.id,
+          week_id: weekId,
+          day: day,
+          completed_at: new Date().toISOString()
+        });
       } catch (e) {
         // silent fail, stays in localStorage
       }
@@ -181,13 +182,11 @@ export const useTreinoStore = defineStore("treino", {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-        await supabase
-          .from('completed_weeks')
-          .upsert({
-            user_id: user.id,
-            week_id: weekId,
-            completed_at: new Date().toISOString()
-          }, { onConflict: 'user_id,week_id' });
+        await upsertCompletedWeek({
+          user_id: user.id,
+          week_id: weekId,
+          completed_at: new Date().toISOString()
+        });
       } catch (e) {
         // silent fail
       }
@@ -373,7 +372,7 @@ export const useTreinoStore = defineStore("treino", {
           classes: 'retro-font'
         });
       } else {
-        await this.registrarHistorico('CANCELADO');
+        await this.registrarHistorico(TRAINING_STATUS.CANCELED);
       }
       this.limparEstadoLocal();
       this.resetSessionState();
@@ -396,7 +395,7 @@ export const useTreinoStore = defineStore("treino", {
         const stringProgresso = `${passosFeitos}/${totalPassos}`;
 
         let pontos = 0;
-        if (status === 'CONCLUÍDO') {
+        if (status === TRAINING_STATUS.COMPLETED) {
           pontos = 1000 + Math.floor(Math.random() * 500);
           // Mark day as completed
           this.markDayCompleted(this.currentWeek, this.currentDay);
@@ -404,7 +403,7 @@ export const useTreinoStore = defineStore("treino", {
           pontos = Math.floor((passosFeitos / totalPassos) * 500);
         }
 
-        const { error } = await supabase.from("historico_treinos").insert({
+        await insertTrainingHistory({
           user_id: user.id,
           treino_id: this.treinoAtivo.id,
           treino_day: this.currentDay,
@@ -414,9 +413,7 @@ export const useTreinoStore = defineStore("treino", {
           progresso: stringProgresso
         });
 
-        if (error) throw error;
-
-        if (status === 'CANCELADO') {
+        if (status === TRAINING_STATUS.CANCELED) {
            Notify.create({
             message: `GAME OVER. SAVED ${pontos} PTS.`,
             color: "warning",
@@ -463,7 +460,7 @@ export const useTreinoStore = defineStore("treino", {
           .from("comprovantes")
           .getPublicUrl(nomeArquivo);
 
-        await this.registrarHistorico('CONCLUÍDO', publicUrl);
+        await this.registrarHistorico(TRAINING_STATUS.COMPLETED, publicUrl);
 
         Notify.create({
           message: `MISSION COMPLETE!`,

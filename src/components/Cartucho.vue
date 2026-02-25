@@ -3,7 +3,7 @@ import { computed } from 'vue';
 
 // Preload available week images and expose their URLs
 // Keys will look like '../assets/weeks/week1.png'
-const weekImages = import.meta.glob('../assets/weeks/*', { eager: true, as: 'url' });
+const weekImages = import.meta.glob('../assets/weeks/*', { eager: true, query: '?url', import: 'default' });
 
 const props = defineProps({
   img: {
@@ -77,9 +77,10 @@ const backgroundStyle = computed(() => ({
 </template>
 
 <style lang="scss" scoped>
+@use "sass:color";
 
 .parafuso::before {
-  background-color: darken($snes-dark, 20%);
+  background-color: color.adjust($snes-dark, $lightness: -20%);
   height: 15px;
   width: 15px;
   border-radius: 50%;
@@ -92,7 +93,7 @@ const backgroundStyle = computed(() => ({
 }
 
 .parafuso::after {
-  background-color: darken($snes-dark, 10%);
+  background-color: color.adjust($snes-dark, $lightness: -10%);
   height: 11px;
   width: 11px;
   border-radius: 50%;
@@ -105,7 +106,7 @@ const backgroundStyle = computed(() => ({
 
 }
 .parafuso2::before {
-  background-color: darken($snes-dark, 20%);
+  background-color: color.adjust($snes-dark, $lightness: -20%);
   height: 15px;
   width: 15px;
   border-radius: 50%;
@@ -118,7 +119,7 @@ const backgroundStyle = computed(() => ({
 }
 
 .parafuso2::after {
-  background-color: darken($snes-dark, 10%);
+  background-color: color.adjust($snes-dark, $lightness: -10%);
   height: 11px;
   width: 11px;
   border-radius: 50%;
@@ -131,7 +132,7 @@ const backgroundStyle = computed(() => ({
 
 }
 .cartucho {
-  margin-top: -100px;
+  margin-top: 0;
   transform: scale(0.7);
   transition: .5s all ease;
 }
@@ -193,7 +194,7 @@ const backgroundStyle = computed(() => ({
   height: 110px;
   margin-bottom: 10px;
 
-  background-color: darken($snes-light, 10%);
+  background-color: color.adjust($snes-light, $lightness: -10%);
 
   border-radius: 0 0 14px 14px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.15);
@@ -243,7 +244,7 @@ const backgroundStyle = computed(() => ({
   bottom: 0;
   height: 100px;
   width: 245px;
-  background-color: darken($snes-light, 5%);
+  background-color: color.adjust($snes-light, $lightness: -5%);
   border-radius: 8px 8px 0 0;
   box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.5),
       0 1px 0 rgba(255, 255, 255, 0.4);

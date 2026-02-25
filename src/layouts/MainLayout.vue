@@ -242,6 +242,8 @@ const abrirHistorico = async () => {
 </template>
 
 <style lang="scss" scoped>
+@use "sass:color";
+
 .blink {
   animation: blinker 1s linear infinite;
 }
@@ -260,12 +262,12 @@ const abrirHistorico = async () => {
 
 .console-front {
   height: 90px;
-  background-color: darken($snes-light, 5%);
+  background-color: color.adjust($snes-light, $lightness: -5%);
   border-radius: 8px;
   border: 1px solid rgba(0, 0, 0, 0.25);
   box-shadow: 0 -3px 4px rgba(0, 0, 0, 0.5),
     inset 1px -2px 1px rgba(255, 255, 255, 0.5),
-    0 6px 8px rgba(255, 255, 255, 0.3), 0 12px 0px darken($snes-dark, 25%);
+    0 6px 8px rgba(255, 255, 255, 0.3), 0 12px 0px color.adjust($snes-dark, $lightness: -25%);
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -285,7 +287,7 @@ const abrirHistorico = async () => {
 .port-hole {
   width: 60px;
   height: 30px;
-  background-color: darken($snes-darker, 20%);
+  background-color: color.adjust($snes-darker, $lightness: -20%);
   border-radius: 15px;
   position: relative;
   z-index: 1;
@@ -309,7 +311,7 @@ const abrirHistorico = async () => {
   top: 100px;
   width: 60px;
   height: 30px;
-  background-color: darken($snes-darker, 8%);
+  background-color: color.adjust($snes-darker, $lightness: -8%);
   border-radius: 15px;
   z-index: 2;
   opacity: 0;
@@ -329,7 +331,7 @@ const abrirHistorico = async () => {
   position: absolute;
   width: 10px;
   height: 155px;
-  background-color: darken($snes-darker, 15%);
+  background-color: color.adjust($snes-darker, $lightness: -15%);
   bottom: -152px;
   left: 50%;
   transform: translateX(-50%);

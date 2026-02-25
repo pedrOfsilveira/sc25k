@@ -8,6 +8,7 @@ import warmupGif from 'src/assets/warmup.gif';
 import cooldownGif from 'src/assets/cooldown.gif';
 import runGif from 'src/assets/run.gif';
 import eskeletoGif from 'src/assets/eskeleto.gif';
+import StarBackground from 'src/components/StarBackground.vue';
 
 const store = useTreinoStore();
 const listaTreinos = treinos;
@@ -20,6 +21,8 @@ const fotoEvidence = ref(null);
 const daySelectDialog = ref(false);
 const selectedWeek = ref(null);
 const helpDialog = ref(false);
+const mission = ref({ week: 1, day: 1, completedAll: false });
+const currentStreak = ref(0);
 
 // Variáveis do Efeito Zoom
 const activeCartuchoId = ref(null);
@@ -30,6 +33,47 @@ const setItemRef = (el, id) => {
 };
 
 let observer = null;
+
+const getCurrentMission = () => {
+  for (const week of listaTreinos) {
+    if (!store.isWeekCompleted(week.id)) {
+      const completed = store.completedDays[week.id] || [];
+      const nextDay = [1, 2, 3].find((d) => !completed.includes(d)) || 1;
+      return { week: week.id, day: nextDay, completedAll: false };
+    }
+  }
+
+  return {
+    week: listaTreinos.length,
+    day: 3,
+    completedAll: true
+  };
+};
+
+const getCurrentStreak = () => {
+  const weeks = Object.keys(store.completedDays || {})
+    .map((weekId) => Number(weekId))
+    .filter((weekId) => (store.completedDays[weekId] || []).length > 0)
+    .sort((a, b) => a - b);
+
+  if (weeks.length === 0) return 0;
+
+  let streak = 0;
+  let expectedWeek = weeks[weeks.length - 1];
+
+  for (let idx = weeks.length - 1; idx >= 0; idx -= 1) {
+    if (weeks[idx] !== expectedWeek) break;
+    streak += 1;
+    expectedWeek -= 1;
+  }
+
+  return streak;
+};
+
+const refreshProgressWidgets = () => {
+  mission.value = getCurrentMission();
+  currentStreak.value = getCurrentStreak();
+};
 
 onMounted(() => {
   // Configuração do Observer
@@ -51,6 +95,8 @@ onMounted(() => {
   setTimeout(() => {
     Object.values(itemRefs.value).forEach((el) => observer.observe(el));
   }, 100);
+
+  refreshProgressWidgets();
 });
 
 onBeforeUnmount(() => {
@@ -81,6 +127,7 @@ const selecionarTreino = (id) => {
 const selecionarDia = (dia) => {
   store.carregarTreino(selectedWeek.value, dia);
   daySelectDialog.value = false;
+  refreshProgressWidgets();
 };
 
 const isWeekUnlocked = (weekId) => {
@@ -122,6 +169,7 @@ const confirmarVitoria = () => {
   if (fotoEvidence.value) {
     store.enviarComprovante(fotoEvidence.value);
     fotoEvidence.value = null;
+    setTimeout(refreshProgressWidgets, 500);
   }
 };
 
@@ -132,11 +180,7 @@ const abrirAjuda = () => {
 
 <template>
   <q-page class="page-container q-pa-md">
-    <div class="star-background">
-      <div id="stars"></div>
-      <div id="stars2"></div>
-      <div id="stars3"></div>
-    </div>
+    <StarBackground />
 
     <q-btn
       v-if="!store.treinoAtivo"
@@ -150,8 +194,25 @@ const abrirAjuda = () => {
     />
 
     <div v-if="!store.treinoAtivo" class="content-wrapper-index">
-      <div class="select mb q-pa-md street-font flex items-center text-h3 snes-blink text-center">
+      <div class="select q-pa-md street-font flex items-center text-h3 snes-blink text-center">
         SELECT STAGE
+      </div>
+
+      <div class="mission-row q-mb-md">
+        <q-card class="mission-card">
+          <div class="alien-font mission-label">TODAY'S MISSION</div>
+          <div class="star-font mission-value" v-if="!mission.completedAll">
+            WEEK {{ mission.week }} · DAY {{ mission.day }}
+          </div>
+          <div class="star-font mission-value" v-else>
+            ALL WEEKS COMPLETED
+          </div>
+        </q-card>
+
+        <q-card class="mission-card">
+          <div class="alien-font mission-label">CURRENT STREAK</div>
+          <div class="star-font mission-value">{{ currentStreak }} WEEKS</div>
+        </q-card>
       </div>
 
       <div class="cartuchos-grid">
@@ -407,17 +468,7 @@ const abrirAjuda = () => {
 </template>
 
 <style lang="scss">
-@function multiple-box-shadow($n) {
-  $value: "#{random(2000)}px #{random(2000)}px #FFF";
-  @for $i from 2 through $n {
-    $value: "#{$value} , #{random(2000)}px #{random(2000)}px #FFF";
-  }
-  @return unquote($value);
-}
-
-$shadows-small: multiple-box-shadow(700);
-$shadows-medium: multiple-box-shadow(200);
-$shadows-big: multiple-box-shadow(100);
+@use "sass:color";
 
 .page-container {
   display: flex;
@@ -545,7 +596,7 @@ $shadows-big: multiple-box-shadow(100);
   border: 1px solid rgba(0, 0, 0, 0.25);
   box-shadow: 0 -3px 4px rgba(0, 0, 0, 0.5),
     inset 1px -2px 1px rgba(255, 255, 255, 0.5),
-    0 12px 0px darken($snes-dark, 25%);
+    0 12px 0px color.adjust($snes-dark, $lightness: -25%);
 }
 
 .login-card::after,
@@ -603,7 +654,7 @@ $shadows-big: multiple-box-shadow(100);
 
 .login-btn-blue {
   background: $snes-blue;
-  box-shadow: 0.5px 2px 0px darken($snes-blue, 15%),
+  box-shadow: 0.5px 2px 0px color.adjust($snes-blue, $lightness: -15%),
     -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
     inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
     inset 2px 3px 4px rgba(255, 255, 255, 0.2),
@@ -614,7 +665,7 @@ $shadows-big: multiple-box-shadow(100);
 
 .login-btn-red {
   background: $snes-red;
-  box-shadow: 0.5px 2px 0px darken($snes-red, 15%),
+  box-shadow: 0.5px 2px 0px color.adjust($snes-red, $lightness: -15%),
     -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
     inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
     inset 2px 3px 4px rgba(255, 255, 255, 0.2),
@@ -625,7 +676,7 @@ $shadows-big: multiple-box-shadow(100);
 
 .login-btn-yellow {
   background: $snes-yellow;
-  box-shadow: 0.5px 2px 0px darken($snes-yellow, 15%),
+  box-shadow: 0.5px 2px 0px color.adjust($snes-yellow, $lightness: -15%),
     -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
     inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
     inset 2px 3px 4px rgba(255, 255, 255, 0.2),
@@ -636,7 +687,7 @@ $shadows-big: multiple-box-shadow(100);
 
 .login-btn-green {
   background: $snes-green;
-  box-shadow: 0.5px 2px 0px darken($snes-green, 15%),
+  box-shadow: 0.5px 2px 0px color.adjust($snes-green, $lightness: -15%),
     -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
     inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
     inset 2px 3px 4px rgba(255, 255, 255, 0.2),
@@ -683,38 +734,32 @@ $shadows-big: multiple-box-shadow(100);
 
 .mb { margin-bottom: 65px; }
 
-.star-background {
-  position: fixed;
-  top: 0;
-  left: 0;
+.mission-row {
   width: 100%;
-  height: 100%;
-  background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
-  z-index: 0;
-  overflow: hidden;
+  max-width: 760px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 auto 16px;
 }
 
-#stars {
-  width: 1px; height: 1px; background: transparent;
-  box-shadow: $shadows-small; animation: animStar 50s linear infinite;
-  &:after { content: " "; position: absolute; top: 2000px; width: 1px; height: 1px; background: transparent; box-shadow: $shadows-small; }
+.mission-card {
+  background-color: #090a0f;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+  padding: 10px 12px;
 }
 
-#stars2 {
-  width: 2px; height: 2px; background: transparent;
-  box-shadow: $shadows-medium; animation: animStar 100s linear infinite;
-  &:after { content: " "; position: absolute; top: 2000px; width: 2px; height: 2px; background: transparent; box-shadow: $shadows-medium; }
+.mission-label {
+  color: #a0a0a0;
+  font-size: 10px;
+  margin-bottom: 6px;
 }
 
-#stars3 {
-  width: 3px; height: 3px; background: transparent;
-  box-shadow: $shadows-big; animation: animStar 150s linear infinite;
-  &:after { content: " "; position: absolute; top: 2000px; width: 3px; height: 3px; background: transparent; box-shadow: $shadows-big; }
-}
-
-@keyframes animStar {
-  from { transform: translateY(0px); }
-  to { transform: translateY(-2000px); }
+.mission-value {
+  color: #fff;
+  font-size: 14px;
 }
 
 .snes-blink { animation: retro-blink 2s infinite; }
@@ -824,7 +869,7 @@ $shadows-big: multiple-box-shadow(100);
   transition: all 0.2s;
 
   &:hover {
-    background-color: lighten($snes-dark, 5%);
+    background-color: color.adjust($snes-dark, $lightness: 5%);
     border-color: $accent;
   }
 
@@ -838,5 +883,11 @@ $shadows-big: multiple-box-shadow(100);
   font-size: 1.2rem;
   color: white;
   text-shadow: 2px 2px 0 #000;
+}
+
+@media (max-width: 700px) {
+  .mission-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
