@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, nextTick } from "vue";
+import { ref, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { supabase } from "boot/supabase";
 import { useTreinoStore } from "stores/treinoStore";
@@ -14,6 +14,20 @@ const tab = ref("home");
 const mostrarHistorico = ref(false);
 const historico = ref([]);
 const loadingHistorico = ref(false);
+const isOffline = ref(!navigator.onLine);
+
+const onOnline = () => { isOffline.value = false };
+const onOffline = () => { isOffline.value = true };
+
+onMounted(() => {
+  window.addEventListener('online', onOnline);
+  window.addEventListener('offline', onOffline);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('online', onOnline);
+  window.removeEventListener('offline', onOffline);
+});
 
 const resetTab = () => {
   const path = route.path;
@@ -84,6 +98,11 @@ const abrirHistorico = async () => {
 
 <template>
   <q-layout>
+    <q-banner v-if="isOffline" class="offline-banner alien-font text-center" dense>
+      <q-icon name="wifi_off" size="14px" class="q-mr-xs" />
+      OFFLINE — SOME FEATURES MAY NOT WORK
+    </q-banner>
+
     <q-page-container>
       <router-view />
 
@@ -185,7 +204,7 @@ const abrirHistorico = async () => {
                 </div>
                 <div class="stat-item">
                   <div class="stat-label alien-font">COMPLETED</div>
-                  <div class="stat-value star-font text-green">{{ historico.filter(h => h.status !== 'CANCELADO').length }}</div>
+                  <div class="stat-value star-font text-green">{{ historico.filter(h => h.status !== 'CANCELED').length }}</div>
                 </div>
                 <div class="stat-item">
                   <div class="stat-label alien-font">TOTAL XP</div>
@@ -196,8 +215,8 @@ const abrirHistorico = async () => {
               <q-list dark separator class="retro-list q-mt-md">
                 <div v-for="item in historico" :key="item.id" class="memory-item-card">
                   <div class="memory-item-header">
-                    <div class="pixel-avatar" :class="item.status === 'CANCELADO' ? 'avatar-failed' : 'avatar-success'">
-                      <q-icon v-if="item.status === 'CANCELADO'" name="close" color="negative" />
+                    <div class="pixel-avatar" :class="item.status === 'CANCELED' ? 'avatar-failed' : 'avatar-success'">
+                      <q-icon v-if="item.status === 'CANCELED'" name="close" color="negative" />
                       <img v-else-if="item.foto_url" :src="item.foto_url">
                       <q-icon v-else name="emoji_events" color="accent" />
                     </div>
@@ -218,9 +237,9 @@ const abrirHistorico = async () => {
                     <div class="badges-row">
                       <span
                         class="status-badge alien-font"
-                        :class="item.status === 'CANCELADO' ? 'status-failed' : 'status-complete'"
+                        :class="item.status === 'CANCELED' ? 'status-failed' : 'status-complete'"
                       >
-                        {{ item.status === 'CANCELADO' ? 'FAILED' : 'COMPLETE' }}
+                        {{ item.status === 'CANCELED' ? 'FAILED' : 'COMPLETE' }}
                       </span>
                       <span class="cycles-badge alien-font">
                         {{ item.progresso || 'ALL' }} CYCLES
@@ -243,6 +262,26 @@ const abrirHistorico = async () => {
 
 <style lang="scss" scoped>
 @use "sass:color";
+
+.offline-banner {
+  background: #b71c1c;
+  color: #fff;
+  font-size: 11px;
+  letter-spacing: 1px;
+  padding: 6px 12px;
+  z-index: 9999;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  animation: retro-blink 2s infinite;
+}
+
+@keyframes retro-blink {
+  0%, 4% { opacity: 1; }
+  5%, 9% { opacity: 0.7; }
+  10%, 100% { opacity: 1; }
+}
 
 .blink {
   animation: blinker 1s linear infinite;

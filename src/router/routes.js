@@ -11,6 +11,11 @@ const routes = [
     children: [{ path: "", component: () => import("pages/LoginPage.vue") }],
   },
   {
+    path: "/reset-password",
+    component: () => import("layouts/AuthLayout.vue"),
+    children: [{ path: "", component: () => import("pages/ResetPasswordPage.vue") }],
+  },
+  {
     path: "/shop",
     component: () => import("layouts/MainLayout.vue"),
     meta: { requiresAuth: true },

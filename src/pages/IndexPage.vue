@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, watch, onMounted, onBeforeUnmount } from "vue";
 import { useTreinoStore } from "stores/treinoStore";
 import { treinos } from "src/data/treinos.js";
 import { supabase } from "boot/supabase";
@@ -9,9 +9,13 @@ import cooldownGif from 'src/assets/cooldown.gif';
 import runGif from 'src/assets/run.gif';
 import eskeletoGif from 'src/assets/eskeleto.gif';
 import StarBackground from 'src/components/StarBackground.vue';
+import { useConfetti } from 'src/composables/useConfetti.js';
+import html2canvas from 'html2canvas';
+import { Notify } from 'quasar';
 
 const store = useTreinoStore();
 const listaTreinos = treinos;
+const { fireConfetti } = useConfetti();
 
 const mostrarHistorico = ref(false);
 const historico = ref([]);
@@ -23,6 +27,17 @@ const selectedWeek = ref(null);
 const helpDialog = ref(false);
 const mission = ref({ week: 1, day: 1, completedAll: false });
 const currentStreak = ref(0);
+const onboardingDialog = ref(false);
+const onboardingStep = ref(1);
+const ONBOARDING_KEY = 'retroRun_onboarded';
+const workoutSummaryDialog = ref(false);
+const selectedDay = ref(null);
+const workoutSummaryData = ref(null);
+
+// Animated XP counter
+const displayedXP = ref(0);
+const shareCardRef = ref(null);
+let xpAnimFrame = null;
 
 // Variáveis do Efeito Zoom
 const activeCartuchoId = ref(null);
@@ -97,6 +112,11 @@ onMounted(() => {
   }, 100);
 
   refreshProgressWidgets();
+
+  // Show onboarding for first-time users
+  if (!localStorage.getItem(ONBOARDING_KEY)) {
+    onboardingDialog.value = true;
+  }
 });
 
 onBeforeUnmount(() => {
@@ -125,8 +145,42 @@ const selecionarTreino = (id) => {
 };
 
 const selecionarDia = (dia) => {
-  store.carregarTreino(selectedWeek.value, dia);
+  selectedDay.value = dia;
   daySelectDialog.value = false;
+
+  // Build workout summary
+  const weekData = listaTreinos.find(w => w.id === selectedWeek.value);
+  if (weekData && weekData.dias && weekData.dias[dia - 1]) {
+    const estrutura = weekData.dias[dia - 1].estrutura;
+    const totalSeconds = estrutura.reduce((sum, step) => sum + step.tempo, 0);
+    const runSeconds = estrutura.filter(s => s.tipo === 'corrida').reduce((sum, s) => sum + s.tempo, 0);
+    const walkSeconds = estrutura.filter(s => s.tipo === 'caminhada').reduce((sum, s) => sum + s.tempo, 0);
+    const warmupSeconds = estrutura.filter(s => s.tipo === 'aquecimento').reduce((sum, s) => sum + s.tempo, 0);
+    const cooldownSeconds = estrutura.filter(s => s.tipo === 'arrefecimento').reduce((sum, s) => sum + s.tempo, 0);
+    const runCycles = estrutura.filter(s => s.tipo === 'corrida').length;
+
+    workoutSummaryData.value = {
+      weekTitle: weekData.titulo,
+      day: dia,
+      totalMinutes: Math.round(totalSeconds / 60),
+      runMinutes: Math.round(runSeconds / 60 * 10) / 10,
+      walkMinutes: Math.round(walkSeconds / 60 * 10) / 10,
+      warmupMinutes: Math.round(warmupSeconds / 60),
+      cooldownMinutes: Math.round(cooldownSeconds / 60),
+      runCycles,
+      steps: estrutura
+    };
+    workoutSummaryDialog.value = true;
+  } else {
+    // Fallback: start directly
+    store.carregarTreino(selectedWeek.value, dia);
+    refreshProgressWidgets();
+  }
+};
+
+const confirmStartWorkout = () => {
+  workoutSummaryDialog.value = false;
+  store.carregarTreino(selectedWeek.value, selectedDay.value);
   refreshProgressWidgets();
 };
 
@@ -176,6 +230,87 @@ const confirmarVitoria = () => {
 const abrirAjuda = () => {
   helpDialog.value = true;
 };
+
+const completeOnboarding = () => {
+  localStorage.setItem(ONBOARDING_KEY, '1');
+  onboardingDialog.value = false;
+  onboardingStep.value = 1;
+};
+
+const nextOnboardingStep = () => {
+  if (onboardingStep.value < 3) {
+    onboardingStep.value++;
+  } else {
+    completeOnboarding();
+  }
+};
+
+const prevOnboardingStep = () => {
+  if (onboardingStep.value > 1) {
+    onboardingStep.value--;
+  }
+};
+
+// Fire confetti + animate XP when workout finishes
+watch(() => store.treinoConcluido, (done) => {
+  if (done) {
+    fireConfetti(3500);
+    animateXP();
+  }
+});
+
+function animateXP() {
+  const target = store.lastEarnedXP || 0;
+  if (target <= 0) { displayedXP.value = 0; return; }
+  displayedXP.value = 0;
+  const duration = 1200; // ms
+  const startTime = performance.now();
+  function step(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // ease-out quad
+    const eased = 1 - (1 - progress) * (1 - progress);
+    displayedXP.value = Math.round(eased * target);
+    if (progress < 1) {
+      xpAnimFrame = requestAnimationFrame(step);
+    }
+  }
+  xpAnimFrame = requestAnimationFrame(step);
+}
+
+async function shareCompletion() {
+  try {
+    const el = shareCardRef.value;
+    if (!el) return;
+    const canvas = await html2canvas(el, {
+      backgroundColor: '#090a0f',
+      scale: 2,
+      logging: false
+    });
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) return;
+
+    if (navigator.share && navigator.canShare) {
+      const file = new File([blob], 'sc25k-run.png', { type: 'image/png' });
+      const shareData = { files: [file], title: 'SC25K Run Complete!', text: 'I just completed a run on SC25K!' };
+      if (navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        return;
+      }
+    }
+
+    // Fallback: download
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sc25k-run.png';
+    a.click();
+    URL.revokeObjectURL(url);
+    Notify.create({ message: 'IMAGE SAVED!', color: 'positive', position: 'top', classes: 'retro-font' });
+  } catch (e) {
+    console.error('Share error:', e);
+  }
+}
 </script>
 
 <template>
@@ -255,11 +390,21 @@ const abrirAjuda = () => {
 
       <div class="full-width flex flex-center column col-grow">
         <div v-if="store.treinoConcluido" class="text-center full-width q-px-md">
-          <h2 class="text-warning snes-blink q-mb-md street-font text-h4">
-            MISSION COMPLETE!
-          </h2>
+          <!-- Shareable card (rendered to canvas for share) -->
+          <div ref="shareCardRef" class="share-card-capture">
+            <h2 class="text-warning snes-blink q-mb-sm street-font text-h4">
+              MISSION COMPLETE!
+            </h2>
+            <div class="xp-earned-row">
+              <q-icon name="stars" color="accent" size="28px" />
+              <span class="star-font text-accent xp-counter">+{{ displayedXP }} XP</span>
+            </div>
+            <div class="alien-font text-grey-5 q-mt-xs" style="font-size: 10px;">
+              WEEK {{ store.currentWeek }} · DAY {{ store.currentDay }}
+            </div>
+          </div>
 
-          <div class="login-card q-pa-sm q-mb-md">
+          <div class="login-card q-pa-sm q-mb-md q-mt-md">
             <div class="login-action-card">
               <div class="evidence-buttons">
                 <input
@@ -288,9 +433,20 @@ const abrirAjuda = () => {
             </div>
           </div>
 
-          <div class="text-white q-mb-lg s-font" style="font-size: 0.7rem">
+          <div class="text-white q-mb-sm s-font" style="font-size: 0.7rem">
             {{ fotoEvidence ? 'TAP SEND TO SAVE' : 'TAP CAMERA TO UPLOAD EVIDENCE' }}
           </div>
+
+          <q-btn
+            flat
+            dense
+            icon="share"
+            label="SHARE"
+            color="info"
+            class="alien-font border-btn q-mt-sm"
+            @click="shareCompletion"
+            style="font-size: 11px;"
+          />
         </div>
 
         <div v-else class="text-center">
@@ -409,6 +565,75 @@ const abrirAjuda = () => {
       </q-card>
     </q-dialog>
 
+    <!-- Workout Summary Dialog -->
+    <q-dialog v-model="workoutSummaryDialog" backdrop-filter="blur(4px)" class="retro-dialog">
+      <q-card v-if="workoutSummaryData" class="confirm-dialog-card workout-summary-card">
+        <div class="dialog-card-header justify-center">
+          <div class="text-center">
+            <div class="star-font text-accent text-h5" style="text-shadow: 3px 3px 0 #000">
+              {{ workoutSummaryData.weekTitle }} · DAY {{ workoutSummaryData.day }}
+            </div>
+            <div class="alien-font text-grey-5 caption-10 q-mt-xs">WORKOUT OVERVIEW</div>
+          </div>
+        </div>
+
+        <div class="dialog-card-body">
+          <div class="workout-stats-grid">
+            <div class="workout-stat">
+              <div class="alien-font text-grey-5" style="font-size: 10px">TOTAL TIME</div>
+              <div class="star-font text-white">{{ workoutSummaryData.totalMinutes }} MIN</div>
+            </div>
+            <div class="workout-stat">
+              <div class="alien-font text-grey-5" style="font-size: 10px">RUN CYCLES</div>
+              <div class="star-font text-negative">{{ workoutSummaryData.runCycles }}x</div>
+            </div>
+            <div class="workout-stat">
+              <div class="alien-font text-grey-5" style="font-size: 10px">RUNNING</div>
+              <div class="star-font text-negative">{{ workoutSummaryData.runMinutes }} MIN</div>
+            </div>
+            <div class="workout-stat">
+              <div class="alien-font text-grey-5" style="font-size: 10px">WALKING</div>
+              <div class="star-font text-info">{{ workoutSummaryData.walkMinutes }} MIN</div>
+            </div>
+            <div class="workout-stat">
+              <div class="alien-font text-grey-5" style="font-size: 10px">WARM UP</div>
+              <div class="star-font text-warning">{{ workoutSummaryData.warmupMinutes }} MIN</div>
+            </div>
+            <div class="workout-stat">
+              <div class="alien-font text-grey-5" style="font-size: 10px">COOL DOWN</div>
+              <div class="star-font text-warning">{{ workoutSummaryData.cooldownMinutes }} MIN</div>
+            </div>
+          </div>
+
+          <div v-if="getDayStatus(selectedWeek, selectedDay) === 'completed'" class="q-mt-md">
+            <div class="alien-font text-warning" style="font-size: 10px; letter-spacing: 1px;">
+              <q-icon name="info" size="12px" class="q-mr-xs" />
+              REPEAT RUN — YOU'LL EARN 50% XP
+            </div>
+          </div>
+        </div>
+
+        <div class="dialog-card-actions justify-center q-gutter-x-md">
+          <q-btn
+            flat
+            size="sm"
+            label="CANCEL"
+            color="info"
+            class="border-btn alien-font"
+            @click="workoutSummaryDialog = false"
+          />
+          <q-btn
+            flat
+            size="sm"
+            label="START RUN"
+            color="accent"
+            class="border-btn alien-font"
+            @click="confirmStartWorkout"
+          />
+        </div>
+      </q-card>
+    </q-dialog>
+
     <q-dialog v-model="helpDialog" backdrop-filter="blur(4px)" class="retro-dialog">
       <q-card class="confirm-dialog-card help-dialog-card">
         <div class="dialog-card-header justify-center">
@@ -460,6 +685,76 @@ const abrirAjuda = () => {
             color="info"
             class="alien-font border-btn"
             @click="helpDialog = false"
+          />
+        </div>
+      </q-card>
+    </q-dialog>
+
+    <!-- Onboarding Dialog -->
+    <q-dialog v-model="onboardingDialog" persistent backdrop-filter="blur(4px)" class="retro-dialog">
+      <q-card class="confirm-dialog-card onboarding-card">
+        <div class="dialog-card-header justify-center">
+          <q-icon name="videogame_asset" color="accent" size="md" class="snes-blink" />
+          <div class="alien-font text-accent" style="font-size: 12px; letter-spacing: 1px; text-shadow: 2px 2px 0 #000">
+            WELCOME, RUNNER!
+          </div>
+        </div>
+
+        <div class="dialog-card-body">
+          <!-- Step 1 -->
+          <div v-if="onboardingStep === 1" class="onboarding-step">
+            <div class="star-font text-accent q-mb-md" style="font-size: 16px; text-shadow: 2px 2px 0 #000;">
+              WHAT IS THIS?
+            </div>
+            <div class="alien-font text-white" style="font-size: 12px; line-height: 20px; letter-spacing: 1px;">
+              SC25K IS A RETRO COUCH-TO-5K PROGRAM. IT TAKES YOU FROM ZERO TO RUNNING 5KM
+              THROUGH 9 WEEKS OF WALK/RUN INTERVALS.
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div v-if="onboardingStep === 2" class="onboarding-step">
+            <div class="star-font text-accent q-mb-md" style="font-size: 16px; text-shadow: 2px 2px 0 #000;">
+              HOW TO PLAY
+            </div>
+            <div class="alien-font text-white" style="font-size: 12px; line-height: 20px; letter-spacing: 1px;">
+              SELECT A WEEK, PICK A DAY, AND FOLLOW THE TIMER. COMPLETE 3 DAYS PER WEEK TO
+              UNLOCK THE NEXT STAGE. UPLOAD A PHOTO AFTER EACH RUN TO EARN XP.
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div v-if="onboardingStep === 3" class="onboarding-step">
+            <div class="star-font text-accent q-mb-md" style="font-size: 16px; text-shadow: 2px 2px 0 #000;">
+              XP & SHOP
+            </div>
+            <div class="alien-font text-white" style="font-size: 12px; line-height: 20px; letter-spacing: 1px;">
+              EARN XP FROM EVERY RUN. SPEND IT IN THE SHOP ON ITEMS CREATED BY OTHER RUNNERS.
+              CHECK THE RANKING TO SEE HOW YOU COMPARE!
+            </div>
+          </div>
+
+          <!-- Step indicator -->
+          <div class="onboarding-dots q-mt-lg">
+            <div v-for="s in 3" :key="s" class="onboarding-dot" :class="{ active: onboardingStep === s }" />
+          </div>
+        </div>
+
+        <div class="dialog-card-actions justify-center q-gutter-x-md">
+          <q-btn
+            v-if="onboardingStep > 1"
+            flat
+            label="BACK"
+            color="grey-5"
+            class="alien-font border-btn"
+            @click="prevOnboardingStep"
+          />
+          <q-btn
+            flat
+            :label="onboardingStep === 3 ? 'START!' : 'NEXT'"
+            color="accent"
+            class="alien-font border-btn"
+            @click="nextOnboardingStep"
           />
         </div>
       </q-card>
@@ -889,5 +1184,84 @@ const abrirAjuda = () => {
   .mission-row {
     grid-template-columns: 1fr;
   }
+}
+
+.onboarding-card {
+  min-width: 300px;
+  max-width: 400px;
+}
+
+.onboarding-step {
+  text-align: center;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.onboarding-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.onboarding-dot {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #555;
+  background: transparent;
+  transition: all 0.2s;
+
+  &.active {
+    background: #00e5ff;
+    border-color: #00e5ff;
+    box-shadow: 0 0 6px rgba(0, 229, 255, 0.5);
+  }
+}
+
+.workout-summary-card {
+  min-width: 300px;
+  max-width: 400px;
+}
+
+.workout-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.workout-stat {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #222;
+  padding: 10px;
+  text-align: center;
+}
+
+// --- Completion XP & Share Card ---
+.share-card-capture {
+  padding: 16px;
+  background-color: #090a0f;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+}
+
+.xp-earned-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.xp-counter {
+  font-size: 28px;
+  text-shadow: 2px 2px 0 #000;
+  animation: xpPulse 0.6s ease-out;
+}
+
+@keyframes xpPulse {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
 </style>

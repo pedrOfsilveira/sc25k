@@ -4,6 +4,7 @@ import { Notify } from 'quasar';
 import {
   fetchProfilesByIds,
   fetchHistoryScoresByUser,
+  fetchOffersReceivedByUserId,
   fetchOffersReceivedByName,
   fetchOffersReceivedByNameInsensitive,
   fetchOffersByCreator,
@@ -30,11 +31,6 @@ export const useShopStore = defineStore('shop', {
   },
 
   actions: {
-
-    _isUuid(value) {
-      if (typeof value !== 'string') return false;
-      return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.trim());
-    },
 
     async _fetchProfilesByIds(userIds) {
       const data = await fetchProfilesByIds(userIds);
@@ -75,15 +71,21 @@ export const useShopStore = defineStore('shop', {
 
         this.saldoTotal = historico?.reduce((sum, item) => sum + (item.pontuacao || 0), 0) || 0;
 
-        // Try exact match first, then case-insensitive
+        // Fetch offers by user ID first, fall back to name-based matching
         let ofertasRecebidas = [];
+        try {
+          ofertasRecebidas = await fetchOffersReceivedByUserId(user.id);
+        } catch (_) {
+          // Column may not exist yet — fall back to name-based
+        }
 
-        const exactMatch = await fetchOffersReceivedByName(userName);
-
-        if (exactMatch.length > 0) {
-          ofertasRecebidas = exactMatch;
-        } else {
-          ofertasRecebidas = await fetchOffersReceivedByNameInsensitive(userName);
+        if (ofertasRecebidas.length === 0) {
+          const exactMatch = await fetchOffersReceivedByName(userName);
+          if (exactMatch.length > 0) {
+            ofertasRecebidas = exactMatch;
+          } else {
+            ofertasRecebidas = await fetchOffersReceivedByNameInsensitive(userName);
+          }
         }
 
         this.ofertasParaMim = ofertasRecebidas || [];
@@ -107,6 +109,14 @@ export const useShopStore = defineStore('shop', {
 
     async criarOferta(nomeDestino, titulo, preco) {
       try {
+        // Validate price range
+        const numericPrice = Number(preco);
+        if (!Number.isFinite(numericPrice) || numericPrice < 1 || numericPrice > 99999) {
+          Notify.create({ message: 'Price must be between 1 and 99,999 XP', color: 'warning' });
+          return false;
+        }
+        const sanitizedPrice = Math.floor(numericPrice);
+
         const { data: { user } } = await supabase.auth.getUser();
         const userName = (user.user_metadata?.name || user.email).toLowerCase();
         const avatarUrl = user.user_metadata?.avatar_url || null;
@@ -132,9 +142,10 @@ export const useShopStore = defineStore('shop', {
         const offerData = {
           criador_id: user.id,
           criador_name: userName,
+          destinatario_id: recipient.id,
           destinatario_name: cleanName,
           titulo: titulo,
-          preco: preco
+          preco: sanitizedPrice
         };
 
         // Only add avatar if the column exists (for backwards compatibility)
@@ -285,12 +296,8 @@ export const useShopStore = defineStore('shop', {
           updated_at: new Date().toISOString()
         };
 
-        // Avoid wiping existing avatar/org when the value isn't available
+        // Avoid wiping existing avatar when the value isn't available
         if (avatarUrl) profileUpsert.avatar_url = avatarUrl;
-
-        // Optional org id (new schema); only set when it looks valid
-        const orgId = arguments.length >= 4 ? arguments[3] : null;
-        if (this._isUuid(orgId)) profileUpsert.org_id = orgId;
 
         return await upsertProfile(profileUpsert);
       } catch (error) {

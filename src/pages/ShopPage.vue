@@ -9,8 +9,10 @@ const shopStore = useShopStore();
 const tab = ref('buy');
 
 const novoTitulo = ref('');
-const novoNome = ref('');
+const novoDestinatario = ref(null);
 const novoPreco = ref(null);
+const userOptions = ref([]);
+const loadingUsers = ref(false);
 
 const ticketRef = ref(null);
 const ticketData = ref(null);
@@ -21,9 +23,25 @@ const currentOfferId = ref(null);
 const showConfirmDialog = ref(false);
 const offerToBuy = ref(null);
 
-onMounted(() => {
+onMounted(async () => {
   shopStore.carregarDados();
+  await loadUsers();
 });
+
+const loadUsers = async () => {
+  loadingUsers.value = true;
+  try {
+    const profiles = await shopStore.getAllProfiles();
+    const { data: { user } } = await (await import('boot/supabase')).supabase.auth.getUser();
+    userOptions.value = (profiles || [])
+      .filter(p => p.id !== user?.id)
+      .map(p => ({ label: p.name, value: p.id, avatar_url: p.avatar_url }));
+  } catch (_) {
+    userOptions.value = [];
+  } finally {
+    loadingUsers.value = false;
+  }
+};
 
 const downloadTicket = () => {
   if (!generatedTicketImg.value || !ticketData.value) return
@@ -42,10 +60,13 @@ const downloadTicket = () => {
 };
 
 const criarOferta = async () => {
-  const sucesso = await shopStore.criarOferta(novoNome.value, novoTitulo.value, novoPreco.value)
+  if (!novoDestinatario.value) return;
+  const selectedUser = userOptions.value.find(u => u.value === novoDestinatario.value);
+  const recipientName = selectedUser?.label || '';
+  const sucesso = await shopStore.criarOferta(recipientName, novoTitulo.value, novoPreco.value)
   if (sucesso) {
     novoTitulo.value = ''
-    novoNome.value = ''
+    novoDestinatario.value = null
     novoPreco.value = null
   }
 };
@@ -122,7 +143,19 @@ const confirmPurchase = async () => {
           <q-separator color="grey-6" class="q-my-xs" />
           <div class="row justify-between items-center">
             <span class="alien-font text-accent" style="font-size: 12px;">AVAILABLE:</span>
-            <span class="star-font text-accent text-h6">{{ shopStore.saldoDisponivel }} XP</span>
+            <div class="row items-center">
+              <span class="star-font text-accent text-h6 q-mr-sm">{{ shopStore.saldoDisponivel }} XP</span>
+              <q-btn
+                flat
+                dense
+                icon="refresh"
+                color="accent"
+                class="border-btn"
+                style="min-width: 28px; height: 28px; padding: 0"
+                :loading="shopStore.loading"
+                @click="shopStore.carregarDados(); loadUsers()"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -240,15 +273,29 @@ const confirmPurchase = async () => {
                 class="retro-input q-mb-md alien-font"
                 color="accent"
               />
-              <q-input
-                v-model="novoNome"
+              <q-select
+                v-model="novoDestinatario"
+                :options="userOptions"
+                option-value="value"
+                option-label="label"
+                emit-value
+                map-options
                 dark
                 outlined
                 dense
-                label="FOR (NAME)"
+                label="FOR (USER)"
                 class="retro-input q-mb-md alien-font"
                 color="accent"
-              />
+                :loading="loadingUsers"
+              >
+                <template v-slot:no-option>
+                  <q-item>
+                    <q-item-section class="alien-font text-grey-5" style="font-size: 10px">
+                      NO USERS FOUND
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
               <q-input
                 v-model.number="novoPreco"
                 type="number"
@@ -258,6 +305,9 @@ const confirmPurchase = async () => {
                 label="PRICE (XP)"
                 class="retro-input alien-font"
                 color="accent"
+                :rules="[val => (val && val >= 1) || 'Min 1 XP', val => (val && val <= 99999) || 'Max 99999 XP']"
+                min="1"
+                max="99999"
               />
             </div>
             <div class="offer-card-actions">
@@ -267,7 +317,7 @@ const confirmPurchase = async () => {
                 icon="sell"
                 color="accent"
                 class="alien-font border-btn full-width"
-                :disable="!novoTitulo || !novoNome || !novoPreco"
+                :disable="!novoTitulo || !novoDestinatario || !novoPreco || novoPreco < 1 || novoPreco > 99999"
                 @click="criarOferta"
               />
             </div>

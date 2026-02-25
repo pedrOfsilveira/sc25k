@@ -18,11 +18,6 @@ const safePercent = (completedCount) => {
   return Math.max(0, Math.min(100, Math.round((completedCount / total) * 100)))
 }
 
-const isUuid = (value) => {
-  if (typeof value !== 'string') return false
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.trim())
-}
-
 const loadRanking = async () => {
   loading.value = true
 
@@ -31,30 +26,9 @@ const loadRanking = async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
 
-    // Try to infer org scope for the ranking (new profiles schema has org_id)
-    const metaOrgId =
-      session.user?.user_metadata?.org_id ||
-      session.user?.user_metadata?.orgId ||
-      session.user?.user_metadata?.organization_id ||
-      session.user?.app_metadata?.org_id ||
-      session.user?.app_metadata?.orgId ||
-      session.user?.app_metadata?.organization_id ||
-      null
-
-    let orgId = isUuid(metaOrgId) ? metaOrgId : null
-
-    // Prefer org_id stored in profiles (if RLS allows it)
-    const { data: myProfile, error: myProfileError } = await supabase
+    const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('org_id')
-      .eq('id', session.user.id)
-      .maybeSingle()
-
-    if (!myProfileError && isUuid(myProfile?.org_id)) orgId = myProfile.org_id
-
-    let profilesQuery = supabase.from('profiles').select('id, name, avatar_url, org_id')
-    if (orgId) profilesQuery = profilesQuery.eq('org_id', orgId)
-    const { data: profiles, error: profilesError } = await profilesQuery
+      .select('id, name, avatar_url')
     if (profilesError) throw profilesError
 
     const profileIds = (profiles || []).map(p => p.id).filter(Boolean)

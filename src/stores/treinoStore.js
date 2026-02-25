@@ -9,6 +9,7 @@ import {
   upsertCompletedWeek,
   insertTrainingHistory
 } from "src/services/trainingService";
+import { useSettingsStore } from "src/stores/settingsStore";
 
 const TRAINING_STATUS = {
   COMPLETED: "COMPLETED",
@@ -29,7 +30,8 @@ export const useTreinoStore = defineStore("treino", {
     currentWeek: null,
     currentDay: null,
     lastLocalPersistAt: 0,
-    completedDays: {} // { "1": [1, 2, 3], "2": [1] } etc
+    completedDays: {}, // { "1": [1, 2, 3], "2": [1] } etc
+    lastEarnedXP: 0
   }),
 
   getters: {
@@ -91,6 +93,7 @@ export const useTreinoStore = defineStore("treino", {
       this.currentDay = null;
       this.currentWeek = preservedWeek;
       this.completedDays = preservedCompleted;
+      this.lastEarnedXP = 0;
     },
     clearLocalData() {
       try {
@@ -342,6 +345,7 @@ export const useTreinoStore = defineStore("treino", {
       const estrutura = this.estruturaAtual;
       if (this.passoAtualIndex < estrutura.length - 1) {
         this.tocarSomAlert();
+        this.vibrar([100, 50, 100]);
         this.passoAtualIndex++;
 
         this.timer = this.passoAtual.tempo;
@@ -382,6 +386,7 @@ export const useTreinoStore = defineStore("treino", {
       this.pausarTimer();
       this.treinoConcluido = true;
       this.tocarSomVitoria();
+      this.vibrar([200, 100, 200, 100, 400]);
       this.salvarEstadoLocal();
     },
 
@@ -397,11 +402,17 @@ export const useTreinoStore = defineStore("treino", {
         let pontos = 0;
         if (status === TRAINING_STATUS.COMPLETED) {
           pontos = 1000 + Math.floor(Math.random() * 500);
+          // If this day was already completed, give 50% XP (repeat run)
+          const alreadyDone = (this.completedDays[this.currentWeek] || []).includes(this.currentDay);
+          if (alreadyDone) {
+            pontos = Math.floor(pontos * 0.5);
+          }
           // Mark day as completed
           this.markDayCompleted(this.currentWeek, this.currentDay);
         } else {
           pontos = Math.floor((passosFeitos / totalPassos) * 500);
         }
+        this.lastEarnedXP = pontos;
 
         await insertTrainingHistory({
           user_id: user.id,
@@ -486,8 +497,22 @@ export const useTreinoStore = defineStore("treino", {
       }
     },
 
+    vibrar(pattern) {
+      try {
+        const settings = useSettingsStore();
+        if (settings.vibrationEnabled && navigator.vibrate) {
+          navigator.vibrate(pattern);
+        }
+      } catch (_) {
+        // ignore
+      }
+    },
+
     tocarSomAlert() {
       try {
+        const settings = useSettingsStore();
+        if (!settings.soundEnabled) return;
+
         const context = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = context.createOscillator();
         const gain = context.createGain();
@@ -508,25 +533,54 @@ export const useTreinoStore = defineStore("treino", {
 
     tocarSomVitoria() {
       try {
+        const settings = useSettingsStore();
+        if (!settings.soundEnabled) return;
+
         const context = new (window.AudioContext || window.webkitAudioContext)();
         const now = context.currentTime;
-        const notas = [523.25, 659.25, 783.99, 1046.5];
 
-        notas.forEach((freq, i) => {
+        // Richer 8-bit victory fanfare: two arpeggiated phrases
+        const phrase1 = [
+          { freq: 523.25, time: 0,    dur: 0.12 }, // C5
+          { freq: 659.25, time: 0.12, dur: 0.12 }, // E5
+          { freq: 783.99, time: 0.24, dur: 0.12 }, // G5
+          { freq: 1046.5, time: 0.36, dur: 0.25 }, // C6 (hold)
+        ];
+        const phrase2 = [
+          { freq: 587.33, time: 0.70, dur: 0.10 }, // D5
+          { freq: 739.99, time: 0.80, dur: 0.10 }, // F#5
+          { freq: 880.00, time: 0.90, dur: 0.10 }, // A5
+          { freq: 1174.7, time: 1.00, dur: 0.35 }, // D6 (hold)
+        ];
+        const notes = [...phrase1, ...phrase2];
+
+        notes.forEach(({ freq, time, dur }) => {
           const osc = context.createOscillator();
           const gain = context.createGain();
-          osc.type = "sawtooth";
-          osc.frequency.setValueAtTime(freq, now + i * 0.15);
+          osc.type = "square";
+          osc.frequency.setValueAtTime(freq, now + time);
 
-          gain.gain.setValueAtTime(0.1, now + i * 0.15);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 0.4);
+          gain.gain.setValueAtTime(0.08, now + time);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + time + dur + 0.15);
 
           osc.connect(gain);
           gain.connect(context.destination);
 
-          osc.start(now + i * 0.15);
-          osc.stop(now + i * 0.15 + 0.5);
+          osc.start(now + time);
+          osc.stop(now + time + dur + 0.2);
         });
+
+        // Add a bass note for weight
+        const bass = context.createOscillator();
+        const bassGain = context.createGain();
+        bass.type = "triangle";
+        bass.frequency.setValueAtTime(130.81, now + 0.36); // C3
+        bassGain.gain.setValueAtTime(0.06, now + 0.36);
+        bassGain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+        bass.connect(bassGain);
+        bassGain.connect(context.destination);
+        bass.start(now + 0.36);
+        bass.stop(now + 1.6);
       } catch (e) {
         console.error("Audio Error", e);
       }

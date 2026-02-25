@@ -6,8 +6,13 @@ import { Notify } from 'quasar'
 import imageCompression from 'browser-image-compression'
 import StarBackground from 'src/components/StarBackground.vue'
 import { computed } from 'vue'
+import { useTreinoStore } from 'stores/treinoStore'
+import { useSettingsStore } from 'stores/settingsStore'
+import html2canvas from 'html2canvas'
 
 const router = useRouter()
+const treinoStore = useTreinoStore()
+const settingsStore = useSettingsStore()
 const user = ref(null)
 const name = ref('')
 const email = ref('')
@@ -16,6 +21,7 @@ const editingName = ref(false)
 const newName = ref('')
 const loading = ref(true)
 const uploadingAvatar = ref(false)
+const profileShareRef = ref(null)
 
 const stats = ref({
   totalRuns: 0,
@@ -25,13 +31,40 @@ const stats = ref({
   itemsBought: 0
 })
 
+// Weekly summary data
+const weeklySummary = ref({
+  runsThisWeek: 0,
+  xpThisWeek: 0,
+  currentStreak: 0
+})
+
+// Expanded badges: ~11 meaningful milestones
 const earnedBadges = computed(() => {
   const badges = []
+  const runs = stats.value.completedRuns
+  const xp = stats.value.totalXP
+  const weeks = Object.keys(treinoStore.completedDays || {}).filter(
+    k => (treinoStore.completedDays[k] || []).length === 3
+  ).length
 
-  if (stats.value.completedRuns >= 1) badges.push({ key: 'first_run', label: 'FIRST RUN', icon: 'sports_score' })
-  if (stats.value.completedRuns >= 10) badges.push({ key: 'runner_10', label: '10 RUNS', icon: 'directions_run' })
-  if (stats.value.totalXP >= 5000) badges.push({ key: 'xp_5k', label: '5K XP', icon: 'stars' })
-  if (stats.value.itemsCreated >= 1) badges.push({ key: 'merchant', label: 'MERCHANT', icon: 'sell' })
+  // Run milestones
+  if (runs >= 1)  badges.push({ key: 'first_run',  label: 'FIRST RUN',   icon: 'sports_score',    color: 'accent' })
+  if (runs >= 5)  badges.push({ key: 'runner_5',   label: '5 RUNS',      icon: 'directions_walk', color: 'cyan' })
+  if (runs >= 10) badges.push({ key: 'runner_10',  label: '10 RUNS',     icon: 'directions_run',  color: 'info' })
+  if (runs >= 20) badges.push({ key: 'runner_20',  label: '20 RUNS',     icon: 'sprint',          color: 'positive' })
+  if (runs >= 27) badges.push({ key: 'all_clear',  label: 'ALL CLEAR',   icon: 'military_tech',   color: 'warning' })
+
+  // XP milestones
+  if (xp >= 5000)  badges.push({ key: 'xp_5k',   label: '5K XP',  icon: 'stars',        color: 'accent' })
+  if (xp >= 10000) badges.push({ key: 'xp_10k',  label: '10K XP', icon: 'auto_awesome', color: 'orange' })
+  if (xp >= 25000) badges.push({ key: 'xp_25k',  label: '25K XP', icon: 'diamond',      color: 'purple' })
+
+  // Progress milestones
+  if (weeks >= 5) badges.push({ key: 'halfway', label: 'HALFWAY',  icon: 'flag',  color: 'info' })
+  if (weeklySummary.value.currentStreak >= 3) badges.push({ key: 'streak_3', label: 'STREAK 3', icon: 'local_fire_department', color: 'negative' })
+
+  // Shop milestones
+  if (stats.value.itemsCreated >= 1) badges.push({ key: 'merchant', label: 'MERCHANT', icon: 'sell', color: 'warning' })
 
   return badges
 })
@@ -64,7 +97,34 @@ const loadUserData = async () => {
       stats.value.totalRuns = historico.length
       stats.value.completedRuns = historico.filter(h => h.status !== 'CANCELED').length
       stats.value.totalXP = historico.reduce((sum, h) => sum + (h.pontuacao || 0), 0)
+
+      // Compute weekly summary (runs & XP in the last 7 days)
+      const now = new Date()
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+      const recentRuns = historico.filter(h => {
+        const d = new Date(h.created_at)
+        return d >= weekAgo && h.status !== 'CANCELED'
+      })
+      weeklySummary.value.runsThisWeek = recentRuns.length
+      weeklySummary.value.xpThisWeek = recentRuns.reduce((sum, h) => sum + (h.pontuacao || 0), 0)
     }
+
+    // Compute streak from completedDays in treinoStore
+    const completedDays = treinoStore.completedDays || {}
+    const weekIds = Object.keys(completedDays)
+      .map(Number)
+      .filter(id => (completedDays[id] || []).length > 0)
+      .sort((a, b) => a - b)
+    let streak = 0
+    if (weekIds.length > 0) {
+      let expected = weekIds[weekIds.length - 1]
+      for (let i = weekIds.length - 1; i >= 0; i--) {
+        if (weekIds[i] !== expected) break
+        streak++
+        expected--
+      }
+    }
+    weeklySummary.value.currentStreak = streak
 
     // Get shop stats
     const { data: ofertas } = await supabase
@@ -277,6 +337,73 @@ const logout = async () => {
 const goToRanking = () => {
   router.push('/ranking')
 }
+
+async function shareProfile() {
+  try {
+    const el = profileShareRef.value
+    if (!el) return
+    const canvas = await html2canvas(el, {
+      backgroundColor: '#090a0f',
+      scale: 2,
+      logging: false
+    })
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
+    if (!blob) return
+
+    if (navigator.share && navigator.canShare) {
+      const file = new File([blob], 'sc25k-profile.png', { type: 'image/png' })
+      const shareData = { files: [file], title: 'SC25K Profile', text: `Check out my SC25K stats! ${stats.value.totalXP} XP earned.` }
+      if (navigator.canShare(shareData)) {
+        await navigator.share(shareData)
+        return
+      }
+    }
+
+    // Fallback: download
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'sc25k-profile.png'
+    a.click()
+    URL.revokeObjectURL(url)
+    Notify.create({ message: 'IMAGE SAVED!', color: 'positive', position: 'top', classes: 'retro-font' })
+  } catch (e) {
+    console.error('Share error:', e)
+  }
+}
+
+async function shareBadge(badge) {
+  try {
+    const el = document.querySelector(`[data-badge-key="${badge.key}"]`)
+    if (!el) return
+    const canvas = await html2canvas(el, {
+      backgroundColor: '#090a0f',
+      scale: 3,
+      logging: false
+    })
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
+    if (!blob) return
+
+    if (navigator.share && navigator.canShare) {
+      const file = new File([blob], `sc25k-badge-${badge.key}.png`, { type: 'image/png' })
+      const shareData = { files: [file], title: `SC25K Badge: ${badge.label}`, text: `I unlocked the ${badge.label} badge on SC25K!` }
+      if (navigator.canShare(shareData)) {
+        await navigator.share(shareData)
+        return
+      }
+    }
+
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `sc25k-badge-${badge.key}.png`
+    a.click()
+    URL.revokeObjectURL(url)
+    Notify.create({ message: 'BADGE IMAGE SAVED!', color: 'positive', position: 'top', classes: 'retro-font' })
+  } catch (e) {
+    console.error('Share badge error:', e)
+  }
+}
 </script>
 
 <template>
@@ -424,7 +551,30 @@ const goToRanking = () => {
           </div>
         </div>
 
-        <!-- Actions -->
+        <!-- Weekly Progress Summary Card -->
+        <div class="text-grey alien-font q-mb-sm" style="font-size: 10px">THIS WEEK:</div>
+        <div ref="profileShareRef" class="weekly-summary-grid q-mb-md">
+          <div class="weekly-stat-card">
+            <q-icon name="directions_run" color="info" size="22px" />
+            <div class="star-font text-info weekly-stat-val">{{ weeklySummary.runsThisWeek }}</div>
+            <div class="alien-font text-grey-5" style="font-size: 9px">RUNS</div>
+          </div>
+          <div class="weekly-stat-card">
+            <q-icon name="stars" color="accent" size="22px" />
+            <div class="star-font text-accent weekly-stat-val">{{ weeklySummary.xpThisWeek }}</div>
+            <div class="alien-font text-grey-5" style="font-size: 9px">XP EARNED</div>
+          </div>
+          <div class="weekly-stat-card">
+            <q-icon name="local_fire_department" color="negative" size="22px" />
+            <div class="star-font text-negative weekly-stat-val">{{ weeklySummary.currentStreak }}</div>
+            <div class="alien-font text-grey-5" style="font-size: 9px">WEEK STREAK</div>
+          </div>
+        </div>
+        <div class="text-center q-mb-md">
+          <q-btn flat dense icon="share" label="SHARE STATS" color="info" class="alien-font border-btn" style="font-size: 10px" @click="shareProfile" />
+        </div>
+
+        <!-- Badges (expanded ~11 milestones) -->
         <div class="text-grey alien-font q-mb-sm" style="font-size: 10px">BADGES:</div>
         <q-card class="profile-card q-mb-md">
           <div class="profile-card-body">
@@ -432,10 +582,54 @@ const goToRanking = () => {
               COMPLETE RUNS AND EARN XP TO UNLOCK BADGES.
             </div>
             <div v-else class="badges-grid">
-              <div v-for="badge in earnedBadges" :key="badge.key" class="badge-chip">
-                <q-icon :name="badge.icon" color="accent" size="18px" />
+              <div
+                v-for="badge in earnedBadges"
+                :key="badge.key"
+                :data-badge-key="badge.key"
+                class="badge-chip"
+                @click="shareBadge(badge)"
+              >
+                <q-icon :name="badge.icon" :color="badge.color || 'accent'" size="18px" />
                 <span class="alien-font badge-label">{{ badge.label }}</span>
+                <q-icon name="share" color="grey-6" size="12px" class="badge-share-icon" />
               </div>
+            </div>
+            <div v-if="earnedBadges.length > 0" class="alien-font text-grey-6 q-mt-sm" style="font-size: 9px">
+              TAP A BADGE TO SHARE IT
+            </div>
+          </div>
+        </q-card>
+
+        <!-- Settings -->
+        <div class="text-grey alien-font q-mb-sm" style="font-size: 10px">SETTINGS:</div>
+        <q-card class="profile-card q-mb-md">
+          <div class="profile-card-body">
+            <div class="settings-row">
+              <div class="settings-label">
+                <q-icon name="volume_up" color="info" size="20px" />
+                <span class="alien-font text-white" style="font-size: 11px">SOUND EFFECTS</span>
+              </div>
+              <q-toggle
+                :model-value="settingsStore.soundEnabled"
+                @update:model-value="settingsStore.toggleSound()"
+                color="accent"
+                dark
+                dense
+              />
+            </div>
+            <q-separator color="grey-9" class="q-my-sm" />
+            <div class="settings-row">
+              <div class="settings-label">
+                <q-icon name="vibration" color="info" size="20px" />
+                <span class="alien-font text-white" style="font-size: 11px">VIBRATION</span>
+              </div>
+              <q-toggle
+                :model-value="settingsStore.vibrationEnabled"
+                @update:model-value="settingsStore.toggleVibration()"
+                color="accent"
+                dark
+                dense
+              />
             </div>
           </div>
         </q-card>
@@ -764,5 +958,61 @@ const goToRanking = () => {
   20%, 24% { opacity: 1; }
   25%, 29% { opacity: 0; }
   30%, 100% { opacity: 1; }
+}
+
+// --- Weekly Summary ---
+.weekly-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.weekly-stat-card {
+  background-color: #090a0f;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+  text-align: center;
+  padding: 10px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.weekly-stat-val {
+  font-size: 18px;
+  line-height: 1;
+}
+
+// --- Settings ---
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.settings-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+// --- Badge share icon ---
+.badge-chip {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+}
+
+.badge-share-icon {
+  margin-left: auto;
+  opacity: 0.4;
 }
 </style>

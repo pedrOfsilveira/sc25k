@@ -2,6 +2,18 @@
 
 A couch to 5k retro style app.
 
+## Environment
+
+Create a `.env` file with:
+
+```dotenv
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_publishable_or_anon_key
+VITE_APP_URL=http://localhost:9000
+```
+
+For Vercel, set `VITE_APP_URL` to your production domain (for example `https://your-app.vercel.app`).
+
 ## Install the dependencies
 ```bash
 yarn

@@ -37,6 +37,12 @@ export async function fetchOffersReceivedByName(userNameLower) {
   return data || [];
 }
 
+export async function fetchOffersReceivedByUserId(userId) {
+  const { data, error } = await offersBaseQuery().eq('destinatario_id', userId);
+  if (error) throw error;
+  return data || [];
+}
+
 export async function fetchOffersReceivedByNameInsensitive(userNameLower) {
   const { data, error } = await offersBaseQuery().ilike('destinatario_name', userNameLower);
   if (error) throw error;

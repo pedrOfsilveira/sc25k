@@ -11,9 +11,31 @@ const password = ref('')
 const name = ref('')
 const loading = ref(false)
 const isLogin = ref(true) // Controla se estamos a fazer login ou cadastro
+const isForgotPassword = ref(false)
 const router = useRouter()
 const $q = useQuasar()
 const shopStore = useShopStore()
+
+const handleForgotPassword = async () => {
+  if (!email.value) {
+    $q.notify({ type: 'warning', message: 'Enter your email first' })
+    return
+  }
+  loading.value = true
+  try {
+    const appUrl = (import.meta.env.VITE_APP_URL || window.location.origin).replace(/\/$/, '')
+    const { error } = await supabase.auth.resetPasswordForEmail(email.value, {
+      redirectTo: `${appUrl}/reset-password`
+    })
+    if (error) throw error
+    $q.notify({ type: 'positive', message: 'Password reset email sent! Check your inbox.' })
+    isForgotPassword.value = false
+  } catch (error) {
+    $q.notify({ type: 'negative', message: error.message })
+  } finally {
+    loading.value = false
+  }
+}
 
 const handleAuth = async (action) => {
   loading.value = true
@@ -139,7 +161,7 @@ const handleAuth = async (action) => {
       </div>
       <div class="q-input-wrapper">
         <q-input
-          v-if="!isLogin"
+          v-if="!isLogin && !isForgotPassword"
           borderless
           v-model="name"
           placeholder="your name"
@@ -154,6 +176,7 @@ const handleAuth = async (action) => {
           class="q-mb-sm snes-font"
         />
         <q-input
+          v-if="!isForgotPassword"
           borderless
           v-model="password"
           placeholder="and your password"
@@ -161,18 +184,26 @@ const handleAuth = async (action) => {
           dense
           class="snes-font"
         />
+        <div v-if="isForgotPassword" class="text-center q-mt-sm">
+          <div class="alien-font" style="font-size: 10px; color: #999; letter-spacing: 1px;">
+            ENTER YOUR EMAIL AND WE'LL SEND A RESET LINK
+          </div>
+        </div>
       </div>
 
       <div class="login-action-card">
         <div class="btn-holder">
           <div class="btn-wrapper down">
-            <q-btn v-if="isLogin" flat class="login-btn-green" icon="login" @click="handleAuth('login')"></q-btn>
+            <q-btn v-if="isForgotPassword" flat class="login-btn-green" icon="send" @click="handleForgotPassword" :loading="loading"></q-btn>
+            <q-btn v-else-if="isLogin" flat class="login-btn-green" icon="login" @click="handleAuth('login')"></q-btn>
             <q-btn v-else flat class="login-btn-green" icon="check" @click="handleAuth('register')"></q-btn>
             <q-btn flat class="login-btn-blue"></q-btn>
           </div>
           <div class="btn-wrapper up">
-            <q-btn flat class="login-btn-yellow"></q-btn>
-            <q-btn flat class="login-btn-red" :icon="isLogin ? 'person_add' : 'arrow_back'" @click="isLogin = !isLogin"></q-btn>
+            <q-btn v-if="!isForgotPassword && isLogin" flat class="login-btn-yellow" icon="lock_reset" @click="isForgotPassword = true"></q-btn>
+            <q-btn v-else flat class="login-btn-yellow"></q-btn>
+            <q-btn v-if="isForgotPassword" flat class="login-btn-red" icon="arrow_back" @click="isForgotPassword = false"></q-btn>
+            <q-btn v-else flat class="login-btn-red" :icon="isLogin ? 'person_add' : 'arrow_back'" @click="isLogin = !isLogin"></q-btn>
           </div>
         </div>
       </div>
