@@ -23,6 +23,34 @@ const loading = ref(true)
 const uploadingAvatar = ref(false)
 const profileShareRef = ref(null)
 
+const appendVersionToAvatarUrl = (url, version) => {
+  if (!url) return ''
+  if (!version) return url
+
+  const separator = url.includes('?') ? '&' : '?'
+  return `${url}${separator}v=${version}`
+}
+
+const applyUserToLocalState = (currentUser) => {
+  if (!currentUser) return
+
+  user.value = currentUser
+  name.value = currentUser.user_metadata?.name || currentUser.email
+  email.value = currentUser.email
+
+  const avatarBaseUrl = currentUser.user_metadata?.avatar_url || ''
+  const avatarVersion = currentUser.user_metadata?.avatar_version
+  avatarUrl.value = appendVersionToAvatarUrl(avatarBaseUrl, avatarVersion)
+}
+
+const refreshAuthSessionAndApplyUser = async () => {
+  const { data, error } = await supabase.auth.refreshSession()
+  if (error) throw error
+
+  const refreshedUser = data?.user || data?.session?.user || null
+  if (refreshedUser) applyUserToLocalState(refreshedUser)
+}
+
 const stats = ref({
   totalRuns: 0,
   completedRuns: 0,
@@ -82,10 +110,7 @@ const loadUserData = async () => {
       return
     }
 
-    user.value = currentUser
-    name.value = currentUser.user_metadata?.name || currentUser.email
-    email.value = currentUser.email
-    avatarUrl.value = currentUser.user_metadata?.avatar_url || ''
+    applyUserToLocalState(currentUser)
 
     // Get training stats
     const { data: historico } = await supabase
@@ -151,24 +176,36 @@ const startEditingName = () => {
 }
 
 const updateName = async () => {
-  if (!newName.value.trim()) {
+  const trimmedName = newName.value.trim()
+
+  if (!trimmedName) {
     Notify.create({ message: 'Name cannot be empty', color: 'warning' })
     return
   }
 
+  const previousName = name.value
+  name.value = trimmedName
+  editingName.value = false
+
   try {
-    const { error } = await supabase.auth.updateUser({
-      data: { name: newName.value.trim() }
+    const { data: updatedUserData, error } = await supabase.auth.updateUser({
+      data: { name: trimmedName }
     })
 
     if (error) throw error
+
+    if (updatedUserData?.user) {
+      applyUserToLocalState(updatedUserData.user)
+    } else {
+      name.value = trimmedName
+    }
 
     // Keep DB profile in sync (new schema: profiles.name)
     try {
       await supabase
         .from('profiles')
         .update({
-          name: newName.value.trim().toLowerCase(),
+          name: trimmedName.toLowerCase(),
           updated_at: new Date().toISOString()
         })
         .eq('id', user.value.id)
@@ -176,8 +213,13 @@ const updateName = async () => {
       // ignore: auth metadata still updated
     }
 
-    name.value = newName.value.trim()
-    editingName.value = false
+    try {
+      await refreshAuthSessionAndApplyUser()
+    } catch (_) {
+      // local optimistic update already applied
+    }
+
+    name.value = trimmedName
 
     Notify.create({
       message: 'NAME UPDATED! VISIBLE ON RANKING & SHOP.',
@@ -187,7 +229,13 @@ const updateName = async () => {
     })
   } catch (error) {
     console.error('Error updating name:', error)
+    name.value = previousName
+    editingName.value = true
     Notify.create({ message: 'Failed to update name', color: 'negative' })
+  } finally {
+    if (name.value === trimmedName) {
+      editingName.value = false
+    }
   }
 }
 
@@ -233,6 +281,7 @@ const uploadAvatar = async (event) => {
   try {
     const previousAvatarUrl = avatarUrl.value
     const previousStoragePath = extractStoragePathFromPublicAvatarUrl(previousAvatarUrl)
+    const avatarVersion = Date.now()
 
     const compressedFile = await imageCompression(file, {
       maxSizeMB: 0.25,
@@ -273,8 +322,11 @@ const uploadAvatar = async (event) => {
     }
 
     // Update user metadata
-    const { error: updateError } = await supabase.auth.updateUser({
-      data: { avatar_url: urlData.publicUrl }
+    const { data: updatedUserData, error: updateError } = await supabase.auth.updateUser({
+      data: {
+        avatar_url: urlData.publicUrl,
+        avatar_version: avatarVersion
+      }
     })
 
     if (updateError) {
@@ -282,7 +334,11 @@ const uploadAvatar = async (event) => {
       throw new Error(`Update failed: ${updateError.message}`)
     }
 
-    avatarUrl.value = urlData.publicUrl
+    if (updatedUserData?.user) {
+      applyUserToLocalState(updatedUserData.user)
+    } else {
+      avatarUrl.value = appendVersionToAvatarUrl(urlData.publicUrl, avatarVersion)
+    }
 
     // Best-effort: delete old avatar object if it was stored in our bucket
     if (previousStoragePath && previousStoragePath !== filePath) {
@@ -306,6 +362,12 @@ const uploadAvatar = async (event) => {
         .eq('id', user.value.id)
     } catch (_) {
       // ignore: metadata already updated
+    }
+
+    try {
+      await refreshAuthSessionAndApplyUser()
+    } catch (_) {
+      // local optimistic update already applied
     }
 
     Notify.create({

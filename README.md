@@ -1,36 +1,76 @@
-# C25K (c25k)
+# SC25K — Retro Couch to 5K
 
-A couch to 5k retro style app.
+SC25K is a retro game-inspired Couch to 5K app that turns each workout into a mission.
+It combines interval training, progression tracking, and arcade-style feedback to make consistency fun.
 
-## Environment
+## Demo
 
-Create a `.env` file with:
+- Live app: https://sc25k.vercel.app
+- Mobile PWA: installable from browser
 
-```dotenv
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_publishable_or_anon_key
-VITE_APP_URL=http://localhost:9000
-```
+## Showcase
 
-For Vercel, set `VITE_APP_URL` to your production domain (for example `https://your-app.vercel.app`).
+### Core experience
 
-## Install the dependencies
-```bash
-yarn
-# or
-npm install
-```
+- 9-week C25K journey with 3 sessions per week
+- Guided intervals: warmup, run, walk, cooldown
+- In-run controls with game-like visual feedback
+- Option to skip initial warmup when needed
 
-### Start the app in development mode (hot-code reloading, error reporting, etc.)
-```bash
-quasar dev
-```
+### Progress and motivation
 
+- XP rewards for completed sessions
+- Partial XP for canceled sessions based on progress
+- Repeat-run XP policy to keep progression fair
+- Weekly mission flow with streak feeling
 
-### Build the app for production
-```bash
-quasar build
-```
+### Social and gamification
 
-### Customize the configuration
-See [Configuring quasar.config.js](https://v2.quasar.dev/quasar-cli-vite/quasar-config-js).
+- Global ranking view
+- Profile customization (avatar + username)
+- Retro-style XP shop and offers system
+- Shareable completion card after each successful run
+
+### Product polish
+
+- PWA support for install-like behavior
+- Route transitions and skeleton loading states
+- Retro UI theme inspired by classic console aesthetics
+
+## Screenshots / GIFs
+
+Add media files in `public/preview/` (or any folder you prefer) and replace placeholders below.
+
+| Run Screen | Workout Complete | Profile & Badges |
+|---|---|---|
+| ![Run screen](public/preview/run-screen.png) | ![Completion screen](public/preview/completion-screen.png) | ![Profile screen](public/preview/profile-screen.png) |
+
+| Ranking | Shop |
+|---|---|
+| ![Ranking](public/preview/ranking-screen.png) | ![Shop](public/preview/shop-screen.png) |
+
+## Stack
+
+- Vue 3 + Quasar
+- Pinia
+- Supabase (Auth, Database, Storage)
+- Vite
+
+## Architecture at a glance
+
+- Main routes: Home, Shop, Profile, Ranking
+- Auth routes: Login, Reset Password
+- Data persisted via Supabase tables and storage buckets
+- Business logic split across stores and service layer
+
+## Optional: run locally
+
+If you want to explore the code locally:
+
+1. Install dependencies with `npm install`
+2. Set environment variables in `.env`
+3. Start with `npm run dev`
+
+## Roadmap
+
+Current and planned milestones are tracked in [ROADMAP.MD](ROADMAP.MD).
