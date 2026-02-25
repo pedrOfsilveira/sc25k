@@ -766,7 +766,7 @@ async function shareCompletion() {
   </q-page>
 </template>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @use "sass:color";
 
 .page-container {
@@ -796,14 +796,14 @@ async function shareCompletion() {
 .cartucho-wrapper {
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   transform-origin: center center;
-  filter: brightness(0.6) grayscale(50%); /* Itens fora de foco ficam mais apagados */
+  filter: brightness(0.6) grayscale(50%);
   opacity: 0.7;
 }
 
 .active-card {
   transform: scale(1.15);
   z-index: 10;
-  filter: brightness(1.1) grayscale(0%); /* Item focado brilha */
+  filter: brightness(1.1) grayscale(0%);
   opacity: 1;
 }
 
@@ -814,11 +814,6 @@ async function shareCompletion() {
   pointer-events: none;
 }
 // -----------------------
-
-.border-btn {
-  border: 2px solid currentColor;
-  border-radius: 0;
-}
 
 .help-btn {
   position: fixed;
@@ -860,11 +855,6 @@ async function shareCompletion() {
   line-height: 18px;
 }
 
-.retro-btn {
-  border-radius: 0;
-  border: 2px solid white;
-}
-
 .retro-bar {
   border: 2px solid white;
   border-radius: 2px;
@@ -873,126 +863,10 @@ async function shareCompletion() {
   color: $street-red !important;
 }
 
-.q-linear-progress__track--light {
+:deep(.q-linear-progress__track--light) {
   background-color: $street-yellow !important;
   background: none !important;
   opacity: 0 !important;
-}
-
-.retro-input .q-field__control {
-  border-radius: 0 !important;
-  border-width: 2px;
-}
-
-.login-card {
-  display: grid;
-  position: relative;
-  bottom: 0;
-  background-color: $snes-light;
-  min-width: 300px;
-  border-radius: 14px;
-  gap: 16px;
-  border: 1px solid rgba(0, 0, 0, 0.25);
-  box-shadow: 0 -3px 4px rgba(0, 0, 0, 0.5),
-    inset 1px -2px 1px rgba(255, 255, 255, 0.5),
-    0 12px 0px color.adjust($snes-dark, $lightness: -25%);
-}
-
-.login-card::after,
-.login-card::before {
-  content: "";
-  position: absolute;
-  height: 60px;
-  width: 50px;
-  background-color: $snes-darker;
-  border-radius: 10px;
-  z-index: -1;
-  top: -7px;
-}
-
-.login-card::before { left: 12px; }
-.login-card::after { right: 12px; }
-
-.login-action-card {
-  background-color: $snes-dark;
-  border-radius: 14px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 32px;
-  padding: 16px;
-  border: 1px solid rgba(0, 0, 0, 0.25);
-  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3), 0 1px 0 rgba(255, 255, 255, 0.4);
-
-  & .q-btn {
-    border-radius: 100%;
-    height: 40px;
-    width: 40px;
-    transform: rotate(38deg);
-  }
-}
-
-.btn-wrapper {
-  background-color: $snes-light;
-  padding: 6px;
-  border-radius: 100px;
-  display: flex;
-  gap: 25px;
-  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3), 0 1px 0 rgba(255, 255, 255, 0.4);
-}
-
-.btn-holder {
-  transform: rotate(-38deg);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.down { transform: translateX(-9px); }
-.up { transform: translateX(9px); }
-
-.login-btn-blue {
-  background: $snes-blue;
-  box-shadow: 0.5px 2px 0px color.adjust($snes-blue, $lightness: -15%),
-    -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
-    inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
-    inset 2px 3px 4px rgba(255, 255, 255, 0.2),
-    inset -1px -1px 2px 1px rgba(255, 255, 255, 0.2),
-    1px 3px 0 rgba(255, 255, 255, 0.5),
-    inset -1px -1px 6px 3px rgba(0, 0, 0, 0.2);
-}
-
-.login-btn-red {
-  background: $snes-red;
-  box-shadow: 0.5px 2px 0px color.adjust($snes-red, $lightness: -15%),
-    -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
-    inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
-    inset 2px 3px 4px rgba(255, 255, 255, 0.2),
-    inset -1px -1px 2px 1px rgba(255, 255, 255, 0.2),
-    1px 3px 0 rgba(255, 255, 255, 0.5),
-    inset -1px -1px 6px 3px rgba(0, 0, 0, 0.2);
-}
-
-.login-btn-yellow {
-  background: $snes-yellow;
-  box-shadow: 0.5px 2px 0px color.adjust($snes-yellow, $lightness: -15%),
-    -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
-    inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
-    inset 2px 3px 4px rgba(255, 255, 255, 0.2),
-    inset -1px -1px 2px 1px rgba(255, 255, 255, 0.2),
-    1px 3px 0 rgba(255, 255, 255, 0.5),
-    inset -1px -1px 6px 3px rgba(0, 0, 0, 0.2);
-}
-
-.login-btn-green {
-  background: $snes-green;
-  box-shadow: 0.5px 2px 0px color.adjust($snes-green, $lightness: -15%),
-    -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
-    inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
-    inset 2px 3px 4px rgba(255, 255, 255, 0.2),
-    inset -1px -1px 2px 1px rgba(255, 255, 255, 0.2),
-    1px 3px 0 rgba(255, 255, 255, 0.5),
-    inset -1px -1px 6px 3px rgba(0, 0, 0, 0.2);
 }
 
 .evidence-buttons {
@@ -1024,6 +898,126 @@ async function shareCompletion() {
       cursor: not-allowed;
     }
   }
+}
+
+.login-card {
+  display: grid;
+  position: relative;
+  background-color: $snes-light;
+  min-width: 300px;
+  border-radius: 14px;
+  gap: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  box-shadow: 0 -3px 4px rgba(0, 0, 0, 0.5),
+    inset 1px -2px 1px rgba(255, 255, 255, 0.5),
+    0 12px 0px color.adjust($snes-dark, $lightness: -25%);
+}
+
+.login-card::after,
+.login-card::before {
+  content: "";
+  position: absolute;
+  height: 60px;
+  width: 50px;
+  background-color: $snes-darker;
+  border-radius: 10px;
+  z-index: -1;
+  top: -7px;
+}
+
+.login-card::before {
+  left: 12px;
+}
+
+.login-card::after {
+  right: 12px;
+}
+
+.login-action-card {
+  background-color: $snes-dark;
+  border-radius: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 32px;
+  padding: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3), 0 1px 0 rgba(255, 255, 255, 0.4);
+
+  :deep(.q-btn) {
+    border-radius: 100%;
+    height: 40px;
+    width: 40px;
+    transform: rotate(38deg);
+  }
+}
+
+.login-btn-blue {
+  background: $snes-blue;
+  box-shadow: 0.5px 2px 0px color.adjust($snes-blue, $lightness: -15%),
+    -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
+    inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
+    inset 2px 3px 4px rgba(255, 255, 255, 0.2),
+    inset -1px -1px 2px 1px rgba(255, 255, 255, 0.2),
+    1px 3px 0 rgba(255, 255, 255, 0.5),
+    inset -1px -1px 6px 3px rgba(0, 0, 0, 0.2);
+}
+
+.login-btn-red {
+  background: $snes-red;
+  box-shadow: 0.5px 2px 0px color.adjust($snes-red, $lightness: -15%),
+    -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
+    inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
+    inset 2px 3px 4px rgba(255, 255, 255, 0.2),
+    inset -1px -1px 2px 1px rgba(255, 255, 255, 0.2),
+    1px 3px 0 rgba(255, 255, 255, 0.5),
+    inset -1px -1px 6px 3px rgba(0, 0, 0, 0.2);
+}
+
+.login-btn-yellow {
+  box-shadow: 0.5px 2px 0px color.adjust($snes-yellow, $lightness: -15%),
+    -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
+    inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
+    inset 2px 3px 4px rgba(255, 255, 255, 0.2),
+    inset -1px -1px 2px 1px rgba(255, 255, 255, 0.2),
+    1px 3px 0 rgba(255, 255, 255, 0.5),
+    inset -1px -1px 6px 3px rgba(0, 0, 0, 0.2);
+  background: $snes-yellow;
+}
+
+.login-btn-green {
+  box-shadow: 0.5px 2px 0px color.adjust($snes-green, $lightness: -15%),
+    -1px -2px 3px rgba(0, 0, 0, 0.5), inset 1px 2px 1px rgba(0, 0, 0, 0.5),
+    inset -0.5px -0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
+    inset 2px 3px 4px rgba(255, 255, 255, 0.2),
+    inset -1px -1px 2px 1px rgba(255, 255, 255, 0.2),
+    1px 3px 0 rgba(255, 255, 255, 0.5),
+    inset -1px -1px 6px 3px rgba(0, 0, 0, 0.2);
+  background: $snes-green;
+}
+
+.btn-wrapper {
+  background-color: $snes-light;
+  padding: 6px;
+  border-radius: 100px;
+  display: flex;
+  gap: 25px;
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3), 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.btn-holder {
+  transform: rotate(-38deg);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.down {
+  transform: translateX(-9px);
+}
+
+.up {
+  transform: translateX(9px);
 }
 
 .select {
@@ -1061,31 +1055,11 @@ async function shareCompletion() {
   font-size: 14px;
 }
 
-.snes-blink { animation: retro-blink 2s infinite; }
-
-@keyframes retro-blink {
-  0%, 4% { opacity: 1; }
-  5%, 9% { opacity: 0; }
-  10%, 14% { opacity: 1; }
-  15%, 19% { opacity: 0; }
-  20%, 24% { opacity: 1; }
-  25%, 29% { opacity: 0; }
-  30%, 100% { opacity: 1; }
-}
-
 .bounce { animation: bounce 0.5s infinite alternate; }
 
 @keyframes bounce {
   from { transform: translateY(0); }
   to { transform: translateY(-10px); }
-}
-
-.retro-screen-card {
-  background-color: #090a0f;
-  border: 2px solid #fff;
-  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
-  border-radius: 4px;
-  position: relative;
 }
 
 // Confirm dialog card styles

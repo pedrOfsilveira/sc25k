@@ -417,8 +417,20 @@ async function shareBadge(badge) {
         </h2>
       </div>
 
-      <div v-if="loading" class="text-center text-white alien-font snes-blink q-mt-xl">
-        LOADING DATA...
+      <div v-if="loading" class="q-mt-md">
+        <q-card class="profile-card q-mb-md">
+          <div class="profile-card-header">
+            <q-skeleton type="circle" size="72px" dark />
+            <div class="column q-gutter-y-sm" style="flex:1">
+              <q-skeleton type="text" width="60px" dark />
+              <q-skeleton type="text" width="140px" dark />
+            </div>
+          </div>
+        </q-card>
+        <div class="stats-grid q-mb-md">
+          <q-skeleton v-for="n in 6" :key="n" height="100px" dark class="stat-card" />
+        </div>
+        <q-skeleton height="80px" dark class="q-mb-md" />
       </div>
 
       <template v-else>
@@ -939,25 +951,6 @@ async function shareBadge(badge) {
     transform: translateY(-1px);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
   }
-}
-
-.border-btn {
-  border: 2px solid currentColor;
-  border-radius: 0;
-}
-
-.snes-blink {
-  animation: retro-blink 2s infinite;
-}
-
-@keyframes retro-blink {
-  0%, 4% { opacity: 1; }
-  5%, 9% { opacity: 0; }
-  10%, 14% { opacity: 1; }
-  15%, 19% { opacity: 0; }
-  20%, 24% { opacity: 1; }
-  25%, 29% { opacity: 0; }
-  30%, 100% { opacity: 1; }
 }
 
 // --- Weekly Summary ---

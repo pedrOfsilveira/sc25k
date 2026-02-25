@@ -104,7 +104,11 @@ const abrirHistorico = async () => {
     </q-banner>
 
     <q-page-container>
-      <router-view />
+      <router-view v-slot="{ Component }">
+        <transition name="page-fade" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
 
       <q-footer v-if="!store.treinoAtivo" class="snes-footer">
         <div class="console-front">
@@ -185,8 +189,18 @@ const abrirHistorico = async () => {
           </q-bar>
 
           <q-card-section class="q-px-md q-pb-xl full-height scroll">
-            <div v-if="loadingHistorico" class="text-center q-mt-xl snes-blink alien-font text-white" style="font-size: 14px">
-              READING MEMORY CARD...
+            <div v-if="loadingHistorico" class="q-mt-md q-px-sm">
+              <q-skeleton height="70px" dark class="q-mb-md" />
+              <div v-for="n in 4" :key="n" class="memory-item-card q-mb-sm">
+                <div class="memory-item-header">
+                  <q-skeleton type="circle" size="48px" dark />
+                  <div class="column q-gutter-y-xs" style="flex:1">
+                    <q-skeleton type="text" width="60%" dark />
+                    <q-skeleton type="text" width="40%" dark />
+                  </div>
+                  <q-skeleton type="rect" width="60px" height="40px" dark />
+                </div>
+              </div>
             </div>
 
             <div v-else-if="historico.length === 0" class="empty-state q-mt-xl">

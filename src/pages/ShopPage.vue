@@ -174,8 +174,20 @@ const confirmPurchase = async () => {
 
       <q-tab-panels v-model="tab" animated class="bg-transparent">
         <q-tab-panel name="buy" class="q-px-none">
-          <div v-if="shopStore.loading" class="text-center text-white alien-font snes-blink">
-            LOADING ITEMS...
+          <div v-if="shopStore.loading" class="q-gutter-y-md">
+            <q-card v-for="n in 3" :key="n" class="offer-card">
+              <div class="offer-card-header">
+                <q-skeleton type="circle" size="48px" dark />
+                <div class="column q-gutter-y-xs" style="flex:1">
+                  <q-skeleton type="text" width="50px" dark />
+                  <q-skeleton type="text" width="100px" dark />
+                </div>
+                <q-skeleton type="rect" width="70px" height="40px" dark />
+              </div>
+              <div class="offer-card-body">
+                <q-skeleton type="text" width="60%" dark />
+              </div>
+            </q-card>
           </div>
 
           <div v-else-if="shopStore.ofertasParaMim.length === 0" class="empty-shop q-pa-lg">
@@ -535,26 +547,6 @@ const confirmPurchase = async () => {
   background: rgba(0, 0, 0, 0.3);
 }
 
-.border-btn {
-  border: 2px solid currentColor;
-  border-radius: 0;
-}
-
-.snes-blink {
-  animation: retro-blink 2s infinite;
-}
-
-@keyframes retro-blink {
-  0%, 4% { opacity: 1; }
-  5%, 9% { opacity: 0; }
-  10%, 14% { opacity: 1; }
-  15%, 19% { opacity: 0; }
-  20%, 24% { opacity: 1; }
-  25%, 29% { opacity: 0; }
-  30%, 100% { opacity: 1; }
-}
-
-// Ticket styles
 .ticket-container {
   width: 300px;
   background-color: #090a0f;

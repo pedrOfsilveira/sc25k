@@ -128,8 +128,18 @@ onMounted(loadRanking)
         </div>
       </q-card>
 
-      <div v-if="loading" class="text-center text-white alien-font snes-blink q-mt-xl">
-        LOADING RANKING...
+      <div v-if="loading" class="q-mt-md q-gutter-y-md">
+        <q-card v-for="n in 5" :key="n" class="runner-card q-pa-md">
+          <div class="row items-center q-gutter-x-md">
+            <q-skeleton type="rect" width="52px" height="32px" dark />
+            <q-skeleton type="QAvatar" size="42px" dark />
+            <div class="column q-gutter-y-xs" style="flex:1">
+              <q-skeleton type="text" width="60%" dark />
+              <q-skeleton type="text" width="40%" dark />
+              <q-skeleton type="rect" height="10px" dark />
+            </div>
+          </div>
+        </q-card>
       </div>
 
       <div v-else>
@@ -385,10 +395,5 @@ onMounted(loadRanking)
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.border-btn {
-  border: 2px solid currentColor;
-  border-radius: 0;
 }
 </style>

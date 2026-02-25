@@ -211,7 +211,7 @@ const handleAuth = async (action) => {
   </q-page>
 </template>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @use "sass:color";
 
 .line {
@@ -414,7 +414,7 @@ border-left: 1px solid rgba(0, 0, 0, 0.15);
 .q-input-wrapper {
   padding: 0 10px;
 
-  & .q-field__control {
+  :deep(.q-field__control) {
     background-color: color.adjust($snes-light, $lightness: -10%);
     border-radius: 8px;
     border: 1px solid rgba(0, 0, 0, 0.25);
@@ -424,22 +424,22 @@ border-left: 1px solid rgba(0, 0, 0, 0.15);
       0 1px 0 rgba(255, 255, 255, 0.4);
   }
 
-  & .q-field__native {
+  :deep(.q-field__native) {
     padding: 12px;
   }
 
-  & .q-field__native:-webkit-autofill,
-  & .q-field__native:-webkit-autofill:hover,
-  & .q-field__native:-webkit-autofill:focus,
-  & .q-field__native:-webkit-autofill:active {
+  :deep(.q-field__native:-webkit-autofill),
+  :deep(.q-field__native:-webkit-autofill:hover),
+  :deep(.q-field__native:-webkit-autofill:focus),
+  :deep(.q-field__native:-webkit-autofill:active) {
       -webkit-box-shadow: 0 0 0 100px color.adjust($snes-light, $lightness: -10%) inset !important;
 
       -webkit-text-fill-color: #333 !important;
       transition: background-color 5000s ease-in-out 0s;
   }
 
-  & .q-field__control:before,
-  & .q-field__control:after {
+  :deep(.q-field__control:before),
+  :deep(.q-field__control:after) {
     border: none !important;
   }
 }

@@ -132,7 +132,7 @@ onMounted(setupRecoverySession)
   </q-page>
 </template>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @use "sass:color";
 
 .q-page {
@@ -252,7 +252,7 @@ onMounted(setupRecoverySession)
 .q-input-wrapper {
   padding: 0 10px;
 
-  & .q-field__control {
+  :deep(.q-field__control) {
     background-color: color.adjust($snes-light, $lightness: -10%);
     border-radius: 8px;
     border: 1px solid rgba(0, 0, 0, 0.25);
@@ -261,12 +261,12 @@ onMounted(setupRecoverySession)
       0 1px 0 rgba(255, 255, 255, 0.4);
   }
 
-  & .q-field__native {
+  :deep(.q-field__native) {
     padding: 12px;
   }
 
-  & .q-field__control:before,
-  & .q-field__control:after {
+  :deep(.q-field__control:before),
+  :deep(.q-field__control:after) {
     border: none !important;
   }
 }
