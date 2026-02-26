@@ -39,7 +39,7 @@ It combines interval training, progression tracking, and arcade-style feedback t
 
 ## Demo
 
-![Demo gameplay](demo.gif)
+<img src="./public/preview/demo.gif" alt="Demo GIF" width="200"/>
 
 ## Stack
 
