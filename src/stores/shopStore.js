@@ -16,6 +16,7 @@ import {
   findAnotherProfileWithName,
   upsertProfile
 } from 'src/services/shopService';
+import { withRetry, withTimeout } from 'src/services/asyncService';
 
 export const useShopStore = defineStore('shop', {
   state: () => ({
@@ -62,42 +63,68 @@ export const useShopStore = defineStore('shop', {
     async carregarDados() {
       this.loading = true;
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        await withRetry(async () => {
+          const { data: { user } } = await withTimeout(
+            supabase.auth.getUser(),
+            12000,
+            'Authentication lookup'
+          );
+          if (!user) return;
 
-        const userName = (user.user_metadata?.name || user.email).toLowerCase();
+          const userName = (user.user_metadata?.name || user.email).toLowerCase();
 
-        const historico = await fetchHistoryScoresByUser(user.id);
+          const historico = await withTimeout(
+            fetchHistoryScoresByUser(user.id),
+            12000,
+            'History query'
+          );
 
-        this.saldoTotal = historico?.reduce((sum, item) => sum + (item.pontuacao || 0), 0) || 0;
+          this.saldoTotal = historico?.reduce((sum, item) => sum + (item.pontuacao || 0), 0) || 0;
 
-        // Fetch offers by user ID first, fall back to name-based matching
-        let ofertasRecebidas = [];
-        try {
-          ofertasRecebidas = await fetchOffersReceivedByUserId(user.id);
-        } catch (_) {
-          // Column may not exist yet — fall back to name-based
-        }
-
-        if (ofertasRecebidas.length === 0) {
-          const exactMatch = await fetchOffersReceivedByName(userName);
-          if (exactMatch.length > 0) {
-            ofertasRecebidas = exactMatch;
-          } else {
-            ofertasRecebidas = await fetchOffersReceivedByNameInsensitive(userName);
+          // Fetch offers by user ID first, fall back to name-based matching
+          let ofertasRecebidas = [];
+          try {
+            ofertasRecebidas = await withTimeout(
+              fetchOffersReceivedByUserId(user.id),
+              12000,
+              'Offers by user id query'
+            );
+          } catch (_) {
+            // Column may not exist yet — fall back to name-based
           }
-        }
 
-        this.ofertasParaMim = ofertasRecebidas || [];
-        await this._enrichOffersWithCreatorProfiles(this.ofertasParaMim);
+          if (ofertasRecebidas.length === 0) {
+            const exactMatch = await withTimeout(
+              fetchOffersReceivedByName(userName),
+              12000,
+              'Offers by exact name query'
+            );
+            if (exactMatch.length > 0) {
+              ofertasRecebidas = exactMatch;
+            } else {
+              ofertasRecebidas = await withTimeout(
+                fetchOffersReceivedByNameInsensitive(userName),
+                12000,
+                'Offers by case-insensitive name query'
+              );
+            }
+          }
 
-        this.totalGasto = this.ofertasParaMim
-          .filter(item => item.comprado)
-          .reduce((sum, item) => sum + item.preco, 0);
+          this.ofertasParaMim = ofertasRecebidas || [];
+          await this._enrichOffersWithCreatorProfiles(this.ofertasParaMim);
 
-        const ofertasCriadas = await fetchOffersByCreator(user.id);
-        this.minhasOfertas = ofertasCriadas || [];
-        await this._enrichOffersWithCreatorProfiles(this.minhasOfertas);
+          this.totalGasto = this.ofertasParaMim
+            .filter(item => item.comprado)
+            .reduce((sum, item) => sum + item.preco, 0);
+
+          const ofertasCriadas = await withTimeout(
+            fetchOffersByCreator(user.id),
+            12000,
+            'Created offers query'
+          );
+          this.minhasOfertas = ofertasCriadas || [];
+          await this._enrichOffersWithCreatorProfiles(this.minhasOfertas);
+        });
 
       } catch (error) {
         console.error("Erro ao carregar loja:", error);

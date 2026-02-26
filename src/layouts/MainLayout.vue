@@ -5,6 +5,8 @@ import { supabase } from "boot/supabase";
 import { useTreinoStore } from "stores/treinoStore";
 import { treinos } from "src/data/treinos.js";
 import { inject } from "@vercel/analytics"
+import { Notify } from "quasar";
+import { withTimeout } from "src/services/asyncService";
 
 const store = useTreinoStore();
 const router = useRouter();
@@ -79,20 +81,34 @@ const abrirHistorico = async () => {
   mostrarHistorico.value = true;
   loadingHistorico.value = true;
 
-  const { data: { user } } = await supabase.auth.getUser();
+  try {
+    const { data: { user } } = await withTimeout(
+      supabase.auth.getUser(),
+      12000,
+      'History auth lookup'
+    );
 
-  if (user) {
-    const { data, error } = await supabase
-      .from("historico_treinos")
-      .select("*")
-      .eq('user_id', user.id)
-      .order("created_at", { ascending: false });
+    if (user) {
+      const { data, error } = await withTimeout(
+        supabase
+          .from("historico_treinos")
+          .select("*")
+          .eq('user_id', user.id)
+          .order("created_at", { ascending: false }),
+        12000,
+        'Main layout history query'
+      );
 
-    if (!error) {
-      historico.value = data;
+      if (!error) {
+        historico.value = data;
+      }
     }
+  } catch (_) {
+    historico.value = [];
+    Notify.create({ message: 'Failed to load history', color: 'negative' });
+  } finally {
+    loadingHistorico.value = false;
   }
-  loadingHistorico.value = false;
 };
 </script>
 

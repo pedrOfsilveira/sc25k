@@ -84,16 +84,16 @@ Ship a stable, delightful, and sticky retro C25K app that improves completion ra
 **Objective:** Improve load speed and app feel before broader promotion.
 
 ### Must-do
-- [ ] Scope leaking styles in [src/pages/IndexPage.vue](src/pages/IndexPage.vue) and [src/pages/LoginPage.vue](src/pages/LoginPage.vue)
-- [ ] Deduplicate repeated SNES button/card CSS into shared styles/components
-- [ ] Lazy-load week assets instead of eager loading all images
-- [ ] Reduce font payload (remove unused fonts, ensure `font-display: swap`)
-- [ ] Replace `animations: 'all'` with only used Quasar animations
-- [ ] Consolidate direct Supabase calls into services layer
+- [X] Scope leaking styles in [src/pages/IndexPage.vue](src/pages/IndexPage.vue) and [src/pages/LoginPage.vue](src/pages/LoginPage.vue)
+- [X] Deduplicate repeated SNES button/card CSS into shared styles/components
+- [X] Lazy-load week assets instead of eager loading all images
+- [X] Reduce font payload (remove unused fonts, ensure `font-display: swap`)
+- [X] Replace `animations: 'all'` with only used Quasar animations
+- [X] Consolidate direct Supabase calls into services layer
 
 ### Nice-to-have
-- [ ] Add route transitions for native-feeling navigation
-- [ ] Replace loading spinners with skeletons where useful
+- [X] Add route transitions for native-feeling navigation
+- [X] Replace loading spinners with skeletons where useful
 
 ### Exit criteria
 - Improved first-load time on mid-range mobile

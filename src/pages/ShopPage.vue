@@ -24,7 +24,7 @@ const showConfirmDialog = ref(false);
 const offerToBuy = ref(null);
 
 onMounted(async () => {
-  shopStore.carregarDados();
+  await shopStore.carregarDados();
   await loadUsers();
 });
 

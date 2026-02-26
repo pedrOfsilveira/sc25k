@@ -9,6 +9,7 @@ import { computed } from 'vue'
 import { useTreinoStore } from 'stores/treinoStore'
 import { useSettingsStore } from 'stores/settingsStore'
 import html2canvas from 'html2canvas'
+import { withRetry, withTimeout } from 'src/services/asyncService'
 
 const router = useRouter()
 const treinoStore = useTreinoStore()
@@ -104,63 +105,77 @@ onMounted(async () => {
 const loadUserData = async () => {
   loading.value = true
   try {
-    const { data: { user: currentUser } } = await supabase.auth.getUser()
-    if (!currentUser) {
-      router.push('/login')
-      return
-    }
-
-    applyUserToLocalState(currentUser)
-
-    // Get training stats
-    const { data: historico } = await supabase
-      .from('historico_treinos')
-      .select('*')
-      .eq('user_id', currentUser.id)
-
-    if (historico) {
-      stats.value.totalRuns = historico.length
-      stats.value.completedRuns = historico.filter(h => h.status !== 'CANCELED').length
-      stats.value.totalXP = historico.reduce((sum, h) => sum + (h.pontuacao || 0), 0)
-
-      // Compute weekly summary (runs & XP in the last 7 days)
-      const now = new Date()
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-      const recentRuns = historico.filter(h => {
-        const d = new Date(h.created_at)
-        return d >= weekAgo && h.status !== 'CANCELED'
-      })
-      weeklySummary.value.runsThisWeek = recentRuns.length
-      weeklySummary.value.xpThisWeek = recentRuns.reduce((sum, h) => sum + (h.pontuacao || 0), 0)
-    }
-
-    // Compute streak from completedDays in treinoStore
-    const completedDays = treinoStore.completedDays || {}
-    const weekIds = Object.keys(completedDays)
-      .map(Number)
-      .filter(id => (completedDays[id] || []).length > 0)
-      .sort((a, b) => a - b)
-    let streak = 0
-    if (weekIds.length > 0) {
-      let expected = weekIds[weekIds.length - 1]
-      for (let i = weekIds.length - 1; i >= 0; i--) {
-        if (weekIds[i] !== expected) break
-        streak++
-        expected--
+    await withRetry(async () => {
+      const { data: { user: currentUser } } = await withTimeout(
+        supabase.auth.getUser(),
+        12000,
+        'Profile auth lookup'
+      )
+      if (!currentUser) {
+        router.push('/login')
+        return
       }
-    }
-    weeklySummary.value.currentStreak = streak
 
-    // Get shop stats
-    const { data: ofertas } = await supabase
-      .from('loja_ofertas')
-      .select('*')
-      .eq('criador_id', currentUser.id)
+      applyUserToLocalState(currentUser)
 
-    if (ofertas) {
-      stats.value.itemsCreated = ofertas.length
-      stats.value.itemsBought = ofertas.filter(o => o.comprado).length
-    }
+      // Get training stats
+      const { data: historico } = await withTimeout(
+        supabase
+          .from('historico_treinos')
+          .select('*')
+          .eq('user_id', currentUser.id),
+        12000,
+        'Profile training history query'
+      )
+
+      if (historico) {
+        stats.value.totalRuns = historico.length
+        stats.value.completedRuns = historico.filter(h => h.status !== 'CANCELED').length
+        stats.value.totalXP = historico.reduce((sum, h) => sum + (h.pontuacao || 0), 0)
+
+        // Compute weekly summary (runs & XP in the last 7 days)
+        const now = new Date()
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        const recentRuns = historico.filter(h => {
+          const d = new Date(h.created_at)
+          return d >= weekAgo && h.status !== 'CANCELED'
+        })
+        weeklySummary.value.runsThisWeek = recentRuns.length
+        weeklySummary.value.xpThisWeek = recentRuns.reduce((sum, h) => sum + (h.pontuacao || 0), 0)
+      }
+
+      // Compute streak from completedDays in treinoStore
+      const completedDays = treinoStore.completedDays || {}
+      const weekIds = Object.keys(completedDays)
+        .map(Number)
+        .filter(id => (completedDays[id] || []).length > 0)
+        .sort((a, b) => a - b)
+      let streak = 0
+      if (weekIds.length > 0) {
+        let expected = weekIds[weekIds.length - 1]
+        for (let i = weekIds.length - 1; i >= 0; i--) {
+          if (weekIds[i] !== expected) break
+          streak++
+          expected--
+        }
+      }
+      weeklySummary.value.currentStreak = streak
+
+      // Get shop stats
+      const { data: ofertas } = await withTimeout(
+        supabase
+          .from('loja_ofertas')
+          .select('*')
+          .eq('criador_id', currentUser.id),
+        12000,
+        'Profile shop stats query'
+      )
+
+      if (ofertas) {
+        stats.value.itemsCreated = ofertas.length
+        stats.value.itemsBought = ofertas.filter(o => o.comprado).length
+      }
+    })
 
   } catch (error) {
     console.error('Error loading profile:', error)

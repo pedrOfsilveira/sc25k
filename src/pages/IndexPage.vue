@@ -12,6 +12,7 @@ import StarBackground from 'src/components/StarBackground.vue';
 import { useConfetti } from 'src/composables/useConfetti.js';
 import html2canvas from 'html2canvas';
 import { Notify } from 'quasar';
+import { withTimeout } from 'src/services/asyncService';
 
 const store = useTreinoStore();
 const listaTreinos = treinos;
@@ -128,15 +129,25 @@ const abrirHistorico = async () => {
   mostrarHistorico.value = true;
   loadingHistorico.value = true;
 
-  const { data, error } = await supabase
-    .from("historico_treinos")
-    .select("*")
-    .order("created_at", { ascending: false });
+  try {
+    const { data, error } = await withTimeout(
+      supabase
+        .from("historico_treinos")
+        .select("*")
+        .order("created_at", { ascending: false }),
+      12000,
+      'Home history query'
+    );
 
-  if (!error) {
-    historico.value = data;
+    if (!error) {
+      historico.value = data;
+    }
+  } catch (_) {
+    historico.value = [];
+    Notify.create({ message: 'Failed to load history', color: 'negative' });
+  } finally {
+    loadingHistorico.value = false;
   }
-  loadingHistorico.value = false;
 };
 
 const selecionarTreino = (id) => {

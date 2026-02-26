@@ -37,17 +37,9 @@ It combines interval training, progression tracking, and arcade-style feedback t
 - Route transitions and skeleton loading states
 - Retro UI theme inspired by classic console aesthetics
 
-## Screenshots / GIFs
+## Demo
 
-Add media files in `public/preview/` (or any folder you prefer) and replace placeholders below.
-
-| Run Screen | Workout Complete | Profile & Badges |
-|---|---|---|
-| ![Run screen](public/preview/run-screen.png) | ![Completion screen](public/preview/completion-screen.png) | ![Profile screen](public/preview/profile-screen.png) |
-
-| Ranking | Shop |
-|---|---|
-| ![Ranking](public/preview/ranking-screen.png) | ![Shop](public/preview/shop-screen.png) |
+![Demo gameplay](demo.gif)
 
 ## Stack
 

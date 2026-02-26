@@ -4,6 +4,7 @@ import { Notify } from 'quasar'
 import { supabase } from 'boot/supabase'
 import { treinos } from 'src/data/treinos.js'
 import StarBackground from 'src/components/StarBackground.vue'
+import { withRetry, withTimeout } from 'src/services/asyncService'
 
 const loading = ref(true)
 const rows = ref([])
@@ -22,64 +23,76 @@ const loadRanking = async () => {
   loading.value = true
 
   try {
-    // Ensure user is authenticated (route guard should already do this)
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
+    await withRetry(async () => {
+      // Ensure user is authenticated (route guard should already do this)
+      const { data: { session } } = await withTimeout(
+        supabase.auth.getSession(),
+        12000,
+        'Ranking auth session lookup'
+      )
+      if (!session) return
 
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, name, avatar_url')
-    if (profilesError) throw profilesError
+      const { data: profiles, error: profilesError } = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('id, name, avatar_url'),
+        12000,
+        'Ranking profiles query'
+      )
+      if (profilesError) throw profilesError
 
-    const profileIds = (profiles || []).map(p => p.id).filter(Boolean)
-    if (profileIds.length === 0) {
-      rows.value = []
-      return
-    }
-
-    const { data: completed, error: completedError } = await supabase
-      .from('completed_days')
-      .select('user_id, week_id, day')
-      .in('user_id', profileIds)
-
-    if (completedError) throw completedError
-
-    const completionByUser = new Map() // userId -> Set("weekId-day")
-    for (const row of completed || []) {
-      if (!row?.user_id) continue
-      const key = `${row.week_id}-${row.day}`
-      if (!completionByUser.has(row.user_id)) completionByUser.set(row.user_id, new Set())
-      completionByUser.get(row.user_id).add(key)
-    }
-
-    const knownProfiles = new Map()
-    for (const p of profiles || []) {
-      if (p?.id) knownProfiles.set(p.id, p)
-    }
-
-    // Do not include users outside the visible org scope
-
-    const totalDays = totalChallengeDays.value
-
-    const computedRows = Array.from(knownProfiles.values()).map((p) => {
-      const completedCount = completionByUser.get(p.id)?.size || 0
-      return {
-        id: p.id,
-        name: (p.name || 'unknown').toString(),
-        avatar_url: p.avatar_url || '',
-        completedCount,
-        totalDays,
-        percent: safePercent(completedCount)
+      const profileIds = (profiles || []).map(p => p.id).filter(Boolean)
+      if (profileIds.length === 0) {
+        rows.value = []
+        return
       }
-    })
 
-    computedRows.sort((a, b) => {
-      if (b.percent !== a.percent) return b.percent - a.percent
-      if (b.completedCount !== a.completedCount) return b.completedCount - a.completedCount
-      return a.name.localeCompare(b.name)
-    })
+      const { data: completed, error: completedError } = await withTimeout(
+        supabase
+          .from('completed_days')
+          .select('user_id, week_id, day')
+          .in('user_id', profileIds),
+        12000,
+        'Ranking completed days query'
+      )
 
-    rows.value = computedRows
+      if (completedError) throw completedError
+
+      const completionByUser = new Map() // userId -> Set("weekId-day")
+      for (const row of completed || []) {
+        if (!row?.user_id) continue
+        const key = `${row.week_id}-${row.day}`
+        if (!completionByUser.has(row.user_id)) completionByUser.set(row.user_id, new Set())
+        completionByUser.get(row.user_id).add(key)
+      }
+
+      const knownProfiles = new Map()
+      for (const p of profiles || []) {
+        if (p?.id) knownProfiles.set(p.id, p)
+      }
+
+      const totalDays = totalChallengeDays.value
+
+      const computedRows = Array.from(knownProfiles.values()).map((p) => {
+        const completedCount = completionByUser.get(p.id)?.size || 0
+        return {
+          id: p.id,
+          name: (p.name || 'unknown').toString(),
+          avatar_url: p.avatar_url || '',
+          completedCount,
+          totalDays,
+          percent: safePercent(completedCount)
+        }
+      })
+
+      computedRows.sort((a, b) => {
+        if (b.percent !== a.percent) return b.percent - a.percent
+        if (b.completedCount !== a.completedCount) return b.completedCount - a.completedCount
+        return a.name.localeCompare(b.name)
+      })
+
+      rows.value = computedRows
+    })
   } catch (error) {
     console.error('Error loading ranking:', error)
     Notify.create({
