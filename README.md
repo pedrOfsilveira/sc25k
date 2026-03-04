@@ -60,8 +60,19 @@ It combines interval training, progression tracking, and arcade-style feedback t
 If you want to explore the code locally:
 
 1. Install dependencies with `npm install`
-2. Set environment variables in `.env`
+2. Copy `.env.example` to `.env` and set the values:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
 3. Start with `npm run dev`
+
+## Vercel environment variables
+
+Set these variables in your Vercel Project Settings → Environment Variables:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+After setting them, redeploy so the values are embedded at build time.
 
 ## Roadmap
 
