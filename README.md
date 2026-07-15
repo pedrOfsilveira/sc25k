@@ -1,5 +1,7 @@
 # SC25K — Retro Couch to 5K
 
+Currently being remade with a Go backend; check https://github.com/pedrofsilveira/sc25kgo
+
 SC25K is a retro game-inspired Couch to 5K app that turns each workout into a mission.
 It combines interval training, progression tracking, and arcade-style feedback to make consistency fun.
 
